@@ -57,7 +57,7 @@ OPTIONS/mp_v1_1		optional mp_v1_1
 busses/cbus/cbus.c	optional cbus
 busses/cbus/cbus_init.c	optional cbus
 busses/mbus/mbus.c	optional mbus
-busses/pci/pci.c	optional pci device-driver
+#busses/pci/pci.c	optional pci device-driver
 
 
 busses/cbus/hi_res_clock.sq	optional cbus hi_res_clock
@@ -67,8 +67,8 @@ i386/hi_res_clock_map.c 	optional hi_res_clock
 chips/busses.c		optional at386
 chips/busses.c          optional esp ipsc386 device-driver |${FORCE_VOLATILE}
 
-device/dma_support.c 	optional pci device-driver
-device/dma_direct_map.c optional pci device-driver
+#device/dma_support.c 	optional pci device-driver
+#device/dma_direct_map.c optional pci device-driver
 
 intel/pmap.c		standard
 intel/read_fault.c	standard
@@ -77,11 +77,11 @@ intel/read_fault.c	standard
 
 ddb/db_aout.c		optional mach_kdb
 
-i386/_setjmp.s		standard
+i386/_setjmp.S		standard
 i386/ast_check.c	optional ipsc386
 i386/ast_check.c	optional symmetry
-i386/bcopy.s		standard
-i386/bzero.s		standard
+i386/bcopy.S		standard
+i386/bzero.S		standard
 i386/cpuid.c		standard
 i386/db_disasm.c	optional mach_kdb
 i386/db_interface.c	optional mach_kdb
@@ -89,25 +89,25 @@ i386/db_trace.c		optional mach_kdb
 i386/fpe.b		optional fpe
 i386/fpe_linkage.c	optional fpe
 i386/fpu.c		standard
-i386/gcc.s		standard
+i386/gcc.S		standard
 i386/gdt.c		standard
 i386/hardclock.c	standard
-i386/i386_lock.s	standard
-i386/idt.s		standard
+i386/i386_lock.S	standard
+i386/idt.S		standard
 i386/kgdb_interface.c	optional mach_kgdb
-i386/interrupt.s	optional at386
-i386/interrupt.s	optional ipsc386
+i386/interrupt.S	optional at386
+i386/interrupt.S	optional ipsc386
 i386/io_emulate.c	standard
 i386/io_map.c		standard
 i386/iopb.c		standard
 i386/kgdb_interface.c   optional mach_kgdb
-i386/kgdb_setjmp.s      optional mach_kgdb
+i386/kgdb_setjmp.S      optional mach_kgdb
 i386/ktss.c		standard
 i386/ldt.c		standard
 i386/loose_ends.c	standard
 i386/mp_desc.c		optional (cpus > 1)
 i386/net_filter.c	standard
-i386/ntoh.s		standard
+i386/ntoh.S		standard
 i386/pcb.c		standard
 i386/phys.c		standard
 i386/pic.c		optional at386
@@ -115,9 +115,9 @@ i386/pic.c		optional ipsc386
 i386/i386_rpc.c		standard
 i386/rtclock.c		optional at386
 i386/rtclock.c		optional ipsc386
-i386/kgdb_setjmp.s	optional mach_kgdb
-i386/spl.s		optional at386
-i386/spl.s		optional ipsc386
+i386/kgdb_setjmp.S	optional mach_kgdb
+i386/spl.S		optional at386
+i386/spl.S		optional ipsc386
 i386/trap.c		standard
 i386/user_ldt.c		standard
 
@@ -153,7 +153,7 @@ i386/AT386/if_wd8003.c	optional wd8003 device-driver
 i386/AT386/iopl.c	optional at386
 adsl_driver.o		optional adsl device-driver
 i386/AT386/kd.c		optional at386
-i386/AT386/kdasm.s	optional at386
+i386/AT386/kdasm.S	optional at386
 i386/AT386/kd_event.c	optional at386
 i386/AT386/kd_mouse.c	optional at386
 i386/AT386/kd_queue.c	optional at386
@@ -163,15 +163,15 @@ i386/AT386/mp/mp.c	optional cbus
 i386/AT386/mp/mp.c	optional mbus
 i386/AT386/mp/mp.c	optional mp_v1_1
 i386/AT386/mp/mp_v1_1.c	optional mp_v1_1
-i386/AT386/mp/slave_boot.s	optional mp_v1_1
-i386/AT386/mp/slave_boot.s	optional cbus
-i386/AT386/mp/slave_boot.s	optional mbus
+i386/AT386/mp/slave_boot.S	optional mp_v1_1
+i386/AT386/mp/slave_boot.S	optional cbus
+i386/AT386/mp/slave_boot.S	optional mbus
 i386/AT386/pic_isa.c	optional at386
 i386/AT386/physmem.c	optional physmem device-driver
 i386/AT386/qd.c		optional qd device-driver
 i386/AT386/wt.c		optional wt device-driver
 
-i386/pci/dma_map.c	optional pci device-driver
+#i386/pci/dma_map.c	optional pci device-driver
 i386/pci/i386_pci.c	optional pci device-driver
 i386/pci/pci_config.c	optional pci device-driver
 i386/pci/pcibios.c	optional pci device-driver

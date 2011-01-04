@@ -41,9 +41,9 @@ options		VTOC_COMPAT
 
 options		CHAINED_IOS
 
-pseudo-device   pci             2
-pseudo-device   "ncr825"	0
-pseudo-device   "ncr810"
+pseudo-device   pci             0
+#pseudo-device   "ncr825"	0
+#pseudo-device   "ncr810"
 pseudo-device	cpus		1
 pseudo-device	"cyctm"		0
 #pseudo-device	blit
@@ -77,8 +77,8 @@ device		com0
 device		com1
 device		com2
 device		com3
-pseudo-device	tu	2
-pseudo-device	fta	2
+#pseudo-device	tu	2
+#pseudo-device	fta	2
 
 # Generic pseudo devices
 pseudo-device	data_device

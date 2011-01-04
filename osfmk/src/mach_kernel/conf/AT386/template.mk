@@ -227,8 +227,8 @@ TARGET_MACHINE_CFLAGS=\
 	-Dvolatile\=__volatile__ -Dsigned\=__signed__
 .endif
 
-LOCORE_DEPS=	assym.s i386/start.s			\
-		i386/locore.s i386/cswitch.s
+LOCORE_DEPS=	assym.S i386/start.S
+		i386/locore.S 386/cswitch.S
 
 locore.S: ${LOCORE_DEPS}
 	cat ${.ALLSRC} >locore.S
@@ -240,12 +240,12 @@ locore.o_SOURCE=locore.S
 genassym.o: ${MACHINE}/genassym.c
 	${_CC_} -MD ${PROFILING_CFLAGS} -S -o ${.TARGET} -c ${_GENINC_} ${INCDIRS} ${IDENT} ${${MACHINE}/genassym.c:P}
 
-assym.s: genassym.o
+assym.S: genassym.o
 	sed -e '/#DEFINITION#/!d' -e 's/^.*#DEFINITION#//' -e 's/\$$//' genassym.o > ${.TARGET}
 
-${SOBJS}: assym.s
+${SOBJS}: assym.S
 
-locore.o: assym.s
+locore.o: assym.S
 
 exec.o: mach/mach_interface.h
 exec.o: mach/mach_user_internal.h
