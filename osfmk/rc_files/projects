@@ -1,0 +1,4 @@
+./default_pager  osc mach3
+./mach_kernel    osc mach3
+./mach_services  osc mach3
+.       osc

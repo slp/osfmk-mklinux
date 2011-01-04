@@ -1,0 +1,10 @@
+	# sandbox rc file created by mksb
+
+	# default sandbox
+default osfmk
+
+	# base directories to sandboxes
+base * /usr/src/DR3
+
+	# list of sandboxes
+sb osfmk

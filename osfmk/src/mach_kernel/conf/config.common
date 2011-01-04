@@ -1,0 +1,57 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+#
+##############################################################################
+#
+# conf/config.common
+#
+# This file defines configuration options that are common to all configurations
+# of Mach. All configurations should include this file. If a system or
+# platform configuration needs to override any of these options, the
+# "options !OPTIONNAME" syntax may be used to remove a default option. The
+# options are processed by config in sequential order.
+#
+##############################################################################
+#
+# Basic compilation options.
+#
+# The MACH ident is passed to every kernel file compilation as -DMACH.
+#	This is useful in order to #ifdef code that is intended to be used in
+#	a MACH kernel.
+#
+ident	MACH
+##############################################################################
+#
+# MACH configuration options.
+#
+# TASK_SWAPPER enables code that manages demand for physical memory by
+#	forcibly suspending tasks when the demand exceeds supply. This
+#	option should be on.
+#
+options		MACH_KERNEL
+options		MACH_PAGEMAP
+options		MACH_LOAD
+options		THREAD_SWAPPER
+options		TASK_SWAPPER
+pseudo-device	test_device	1
+options		!MACH_RT
+options		ADVISORY_PAGEOUT

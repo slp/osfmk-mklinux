@@ -1,0 +1,56 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+#
+##############################################################################
+#
+# conf/${machine}/config.debug
+#
+# This file defines machine-dependent options that are normally used only during
+# kernel code development and debugging. They add run-time error checks or
+# statistics gathering, which will slow down the system
+#
+##############################################################################
+#
+# include all machine-independent debugging options.
+#
+include "config.debug"
+#
+# Turn on symbolic debug info.
+#
+#makeoptions   "SYMBOLIC_DEBUG_INFO"=" "
+#
+# MACH_KDB control the inclusion of the in-kernel debugger. These
+#	options allow kernel developers to breakpoint, examine, and modify
+#	a running kernel. These options MUST NOT be enabled on a released
+#	configuration due to the security implications. 
+#
+options		MACH_KDB
+#
+# Turn on TR routines.  These insert trace records into a common buffer,
+#	for analysis from the kernel debugger.  The functionality of
+#	TR and XPR_DEBUG overlaps substantially, and should be merged.
+#
+options		MACH_TR
+#
+# BOOTSTRAP_SYMBOLS control the inclusion of the symbols of bootstrap task.
+#
+options		BOOTSTRAP_SYMBOLS

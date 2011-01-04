@@ -1,0 +1,42 @@
+# 
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+#
+
+The boot built in this directory is intented to be installed
+as a primary boot on a disk or floppy (first 8K). 
+
+This boot understands MACH/BSD/OSF1 and LINUX file systems and
+will only load ELF binaries.
+
+It loads a single program. The default is /stand/mach_boot, the secondary
+boot dedicated to mach. See README in the src/stand/AT386/boot/secondary
+directory.
+
+The target files are boot and rboot. The second form permits
+the use of COM1 as the console. 
+
+To install a boot on a disk, type
+dd if=[r]boot of=<device> bs=1k conv=sync
+
+When building boot and rboot, check that their sizes are
+smaller than 8K to prevent overwriting the floppy file system.
+

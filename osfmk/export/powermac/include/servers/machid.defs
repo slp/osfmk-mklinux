@@ -1,0 +1,527 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/* 
+ * Mach Operating System
+ * Copyright (c) 1991,1990 Carnegie Mellon University
+ * All Rights Reserved.
+ * 
+ * Permission to use, copy, modify and distribute this software and its
+ * documentation is hereby granted, provided that both the copyright
+ * notice and this permission notice appear in all copies of the
+ * software, derivative works or modified versions, and any portions
+ * thereof, and that both notices appear in supporting documentation.
+ * 
+ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS 
+ * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+ * 
+ * Carnegie Mellon requests users of this software to return to
+ * 
+ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+ *  School of Computer Science
+ *  Carnegie Mellon University
+ *  Pittsburgh PA 15213-3890
+ * 
+ * any improvements or extensions that they make and grant Carnegie the
+ * rights to redistribute these changes.
+ */
+/*
+ * MkLinux
+ */
+
+subsystem machid 9829283;
+
+userprefix machid_;
+serverprefix do_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+#include <servers/machid_types.defs>
+
+routine mach_type(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		id		: mach_id_t;
+	out	mtype		: mach_type_t);
+
+routine mach_register(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		port		: mach_port_t;
+		mtype		: mach_type_t;
+	out	id		: mach_id_t);
+
+routine mach_lookup(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		name		: mach_id_t;
+		atype		: mach_type_t;
+	out	aname		: mach_id_t);
+
+routine mach_port(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		name		: mach_id_t;
+	out	port		: mach_port_move_send_t);
+
+routine host_ports(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+	out	host		: mhost_t;
+	out	phost		: mhost_priv_t);
+
+routine host_processor_sets(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	sets		: mprocessor_set_array_t, dealloc);
+
+routine host_tasks(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	tasks		: mtask_array_t, dealloc);
+
+routine host_threads(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	threads		: mthread_array_t, dealloc);
+
+routine host_processors(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	procs		: mprocessor_array_t, dealloc);
+
+routine processor_set_threads(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		pset		: mprocessor_set_t;
+	out	threads		: mthread_array_t, dealloc);
+
+routine processor_set_tasks(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		pset		: mprocessor_set_t;
+	out	tasks		: mtask_array_t, dealloc);
+
+routine task_threads(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+	out	threads		: mthread_array_t, dealloc);
+
+routine host_basic_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	info		: host_basic_info_data_t);
+
+routine host_sched_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	info		: host_sched_info_data_t);
+
+routine host_load_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	info		: host_load_info_data_t);
+
+routine processor_set_default(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	pset		: mprocessor_set_name_t);
+
+routine	host_kernel_version(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	kernel_version	: kernel_version_t);
+
+routine processor_basic_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		proc		: mprocessor_t;
+	out	host		: mhost_t;
+	out	info		: processor_basic_info_data_t);
+
+skip; 				/* old processor_set_basic_info */
+skip; 				/* old processor_set_sched_info */
+skip;				/* was task_unix_info() */
+skip;				/* old task_basic_info */
+
+routine task_thread_times_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+	out	times		: task_thread_times_info_data_t);
+
+skip; 				/* thread_basic_info */
+skip;				/* thread_sched_info */
+
+#ifdef	mips
+routine mips_thread_state(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	state		: mips_thread_state_t);
+#else	mips
+skip;
+#endif	mips
+
+#ifdef	sun3
+routine sun3_thread_state(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	state		: sun3_thread_state_t);
+#else	sun3
+skip;
+#endif	sun3
+
+#ifdef	vax
+routine vax_thread_state(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	state		: vax_thread_state_t);
+#else	vax
+skip;
+#endif	vax
+
+#ifdef	i386
+routine i386_thread_state(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	state		: i386_thread_state_t);
+#else	i386
+skip;
+#endif	i386
+
+routine task_terminate(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t);
+
+routine task_suspend(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t);
+
+routine task_resume(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t);
+
+routine thread_terminate(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t);
+
+routine thread_suspend(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t);
+
+routine thread_resume(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t);
+
+routine thread_abort(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t);
+
+skip;	/* was thread_depress_abort */
+
+routine processor_set_destroy(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		pset		: mprocessor_set_t);
+
+routine	processor_start(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		processor	: mprocessor_t);
+
+routine	processor_exit(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		processor	: mprocessor_t);
+
+routine vm_region(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		addr		: vm_offset_t;
+	out	info		: region_info_t);
+
+routine vm_read(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		addr		: vm_offset_t;
+		size		: vm_size_t;
+	out	data		: pointer_t, dealloc);
+
+skip;	/* was thread_priority */
+
+skip;	/* was thread_max_priority */
+
+skip;	/* was task_priority */
+
+routine processor_set_max_priority(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		pset		: mprocessor_set_t;
+		max_pri		: int;
+		change_threads	: boolean_t);
+
+routine port_names(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+	out	names		: mach_port_name_array_t, dealloc;
+	out	types		: mach_port_type_array_t, dealloc);
+
+routine port_type(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		name		: mach_port_name_t;
+	out	ptype		: mach_port_type_t);
+
+routine port_get_refs(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		name		: mach_port_name_t;
+		right		: mach_port_right_t;
+	out	refs		: mach_port_urefs_t);
+
+routine port_get_receive_status(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		name		: mach_port_name_t;
+	out	status		: mach_port_status_t);
+
+routine port_get_set_status(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		name		: mach_port_name_t;
+	out	members		: mach_port_name_array_t, dealloc);
+
+routine processor_get_assignment(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		proc		: mprocessor_t;
+	out	pset		: mprocessor_set_name_t);
+
+routine thread_get_assignment(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	pset		: mprocessor_set_name_t);
+
+routine task_get_assignment(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+	out	pset		: mprocessor_set_name_t);
+
+routine host_processor_set_priv(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+		psetn		: mprocessor_set_name_t;
+	out	pset		: mprocessor_set_t);
+
+routine host_processor_set_names(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	sets		: mprocessor_set_name_array_t, dealloc);
+
+routine processor_set_create(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	pset		: mprocessor_set_t;
+	out	psetn		: mprocessor_set_name_t);
+
+skip;
+
+routine thread_create(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+	out	thread		: mthread_t);
+
+routine processor_assign(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		processor	: mprocessor_t;
+		pset		: mprocessor_set_t;
+		wait		: boolean_t);
+
+routine thread_assign(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+		pset		: mprocessor_set_t);
+
+routine thread_assign_default(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t);
+
+routine task_assign(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		pset		: mprocessor_set_t;
+		assign_threads	: boolean_t);
+
+routine task_assign_default(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		task		: mtask_t;
+		assign_threads	: boolean_t);
+
+skip;				/* old thread_policy */
+
+routine processor_set_policy_enable(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		processor_set	: mprocessor_set_t;
+		policy		: int);
+
+routine processor_set_policy_disable(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		processor_set	: mprocessor_set_t;
+		policy		: int;
+		change_threads	: boolean_t);
+
+routine host_default_pager(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	default_pager	: mdefault_pager_t);
+
+routine default_pager_info(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		default_pager	: mdefault_pager_t;
+	out	total_size	: vm_size_t;
+	out	free_size	: vm_size_t);
+
+skip; /* old vm_statistics */
+
+#ifdef	i860
+routine i860_thread_state(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		thread		: mthread_t;
+	out	state		: i860_thread_state_t);
+#else	i860
+skip;
+#endif	i860
+
+routine host_vm_statistics(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_priv_t;
+	out	data		: vm_statistics_data_t);
+
+routine host_page_size(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		host		: mhost_t;
+	out	page_size	: vm_size_t);
+
+routine processor_set_info(
+                server          : mach_port_t;
+                auth            : mach_port_t;
+                pset            : mprocessor_set_name_t;
+		flavor		: int;
+        out     host            : mhost_t;
+        out     info            : processor_set_info_t, CountInOut);
+
+routine task_info(
+                server          : mach_port_t;
+                auth            : mach_port_t;
+                task            : mtask_t;
+		flavor		: int;
+        out     info            : task_info_t, CountInOut);
+
+routine thread_info(
+                server          : mach_port_t;
+                auth            : mach_port_t;
+                thread          : mthread_t;
+		flavor		: int;
+        out     info            : thread_info_t, CountInOut);
+
+routine thread_policy(
+                server          : mach_port_t;
+                auth            : mach_port_t;
+                thread          : mthread_t;
+                policy          : policy_t;
+                base            : policy_base_t;
+                set_limit       : boolean_t);
+
+routine processor_set_statistics(
+                server          : mach_port_t;
+                auth            : mach_port_t;
+                pset            : mprocessor_set_name_t;
+                flavor          : int;
+        out     info            : processor_set_info_t, CountInOut);
+
+
+routine task_create(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		parent		: mtask_t;
+		ledger_ports	: ledger_port_array_t;
+		inherit		: boolean_t;
+	out	task		: mtask_t);
+
+routine node_host_ports(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		node		: int;
+	out	host		: mhost_t;
+	out	phost		: mhost_priv_t);
+
+routine mach_node(
+		server		: mach_port_t;
+		auth		: mach_port_t;
+		id		: mach_id_t;
+	out	node		: int);
+

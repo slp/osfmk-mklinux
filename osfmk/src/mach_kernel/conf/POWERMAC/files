@@ -1,0 +1,176 @@
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+
+OPTIONS/db_machine_commands	optional db_machine_commands
+OPTIONS/gprof			optional gprof
+OPTIONS/fpe			optional fpe
+OPTIONS/fddi			optional fddi
+OPTIONS/serial_console_default	optional serial_console_default
+OPTIONS/mp			optional mp
+
+# lowmem_vectors.s must be at head of link line.
+# template.mk treats this as a special case and makes sure
+# that the file is placed at the front of the line
+
+ddb/db_aout.c			optional mach_kdb
+./ppc_disasm.c			optional mach_kdb
+ppc/db_disasm.c			optional mach_kdb
+ppc/db_interface.c		optional mach_kdb
+ppc/db_trace.c			optional mach_kdb
+ppc/db_low_trace.c		optional db_machine_commands
+
+ppc/start.s			standard
+ppc/_setjmp.s			standard
+ppc/ppc_init.c			standard
+ppc/model_dep.c			standard
+ppc/mem.c			standard
+ppc/pmap.c			standard
+ppc/hw_lock.s			standard
+ppc/ppc_rpc.c			standard
+ppc/misc_asm.s			standard
+ppc/status.c			standard
+ppc/io_map.c			standard
+ppc/trap.c			standard
+ppc/alignment.c			standard
+ppc/pcb.c			standard
+ppc/net_filter.c		standard
+ppc/bits.s			standard
+ppc/stubs.c			standard
+ppc/cswtch.s			standard
+ppc/cache.s			standard
+ppc/movc.s			standard
+ppc/klglue.s			standard
+ppc/hw_exception.s		standard
+ppc/bzero.s			standard
+ppc/bcopy.s			standard
+ppc/misc.c			standard
+ppc/go.c			standard
+ppc/interrupt.c			standard
+ppc/POWERMAC/interrupt_pdm.c	standard
+ppc/POWERMAC/interrupt_pci.c	standard
+ppc/POWERMAC/interrupt_m2.c	standard
+ppc/POWERMAC/interrupt_heathrow.c standard
+ppc/POWERMAC/conf.c		standard
+ppc/POWERMAC/autoconf.c		standard
+ppc/POWERMAC/bbclock.c		standard
+ppc/POWERMAC/rtclock.c		standard
+ppc/POWERMAC/device_tree.c	standard
+ppc/POWERMAC/pci.c		standard
+ppc/POWERMAC/pci_probe.c	standard
+ppc/POWERMAC/pci_compat.c	standard
+
+ppc/Firmware.s			optional	mp
+ppc/MPinterfaces.s		optional	mp
+ppc/POWERMAC/mp/MP_2p.s		optional	mp
+ppc/POWERMAC/mp/mp.c		optional	mp
+
+ppc/kgdb_interface.c		optional mach_kgdb
+
+chips/busses.c			standard
+
+ppc/serial_console.c		optional	scc device-driver
+ppc/POWERMAC/serial_io.c	optional	scc device-driver
+ppc/POWERMAC/scc_amic.c		optional	scc device-driver
+ppc/console_feed.c		optional	consfeed device-driver
+
+ppc/POWERMAC/adb.c		optional	adb device-driver
+ppc/POWERMAC/cuda.c		optional	cuda device-driver
+ppc/POWERMAC/cuda_power.c	optional	cuda device-driver
+ppc/POWERMAC/pmu.c		optional	pmu device-driver
+ppc/POWERMAC/pram.c		optional	pram device-driver
+ppc/POWERMAC/nvram.c		optional	nvram device-driver
+ppc/POWERMAC/video_console.c	optional	vc device-driver
+ppc/POWERMAC/video_scroll.s	optional	vc device-driver
+ppc/POWERMAC/video_pdm.c	optional	vc device-driver
+ppc/POWERMAC/video_hpv.c	optional	vc device-driver
+ppc/POWERMAC/video_av.c		optional	vc device-driver
+ppc/POWERMAC/video_dummy.c	optional	vc device-driver
+ppc/POWERMAC/video_control.c	optional	vc device-driver
+ppc/POWERMAC/video_platinum.c	optional	vc device-driver
+ppc/POWERMAC/video_ati.c	optional	vc device-driver
+ppc/POWERMAC/video_ims.c	optional	vc device-driver
+ppc/POWERMAC/video_chips.c	optional	vc device-driver
+ppc/POWERMAC/video_valkyrie.c	optional	vc device-driver
+ppc/POWERMAC/video_ecsc.c	optional	vc device-driver
+ppc/POWERMAC/adb_keyboard.c	optional	vc device-driver
+ppc/POWERMAC/adb_mouse.c	optional	mouse device-driver
+ppc/POWERMAC/physmem.c		optional 	physmem device-driver
+
+ppc/POWERMAC/if_mace.c		optional lan device-driver
+
+ppc/POWERMAC/if_tulip.c		optional tulip device-driver
+ppc/POWERMAC/if_bmac.c		optional bmac device-driver
+
+ppc/POWERMAC/scsi_53C94_hdw.c	optional asc device-driver
+ppc/POWERMAC/scsi_amic.c	optional asc device-driver
+ppc/POWERMAC/scsi_curio_dbdma.c optional asc device-driver
+ppc/POWERMAC/dbdma.c		standard
+ppc/POWERMAC/mesh.c		optional mesh device-driver
+
+ppc/POWERMAC/wd.c		optional wd device-driver
+ppc/POWERMAC/wcd.c		optional wd device-driver
+ppc/POWERMAC/atapi.c		optional wd device-driver
+
+ppc/POWERMAC/floppy/fd.c               optional        fd  device-driver
+ppc/POWERMAC/floppy/bsfloppy.c         optional        fd  device-driver
+ppc/POWERMAC/floppy/floppycore.c       optional        fd  device-driver
+ppc/POWERMAC/floppy/grcswimiiihal.c    optional        fd  device-driver
+ppc/POWERMAC/floppy/swimiiicommonhal.c optional        fd  device-driver
+ppc/POWERMAC/floppy/maxwellfloppysal.c optional        fd  device-driver
+ppc/POWERMAC/floppy/extern.c           optional        fd  device-driver
+ppc/POWERMAC/floppy/dbdmasupport.c     optional        fd  device-driver
+
+i386/AT386/bios_label.c		optional scsi device-driver
+ppc/POWERMAC/mac_label.c	optional scsi device-driver
+ppc/POWERMAC/macsd.c		optional scsi device-driver
+ppc/POWERMAC/powermac_scsi.c	optional scsi device-driver
+scsi/rz.c			optional scsi device-driver
+scsi/rz_audio.c			optional scsi device-driver
+scsi/rz_cpu.c			optional scsi device-driver
+scsi/rz_disk.c			optional scsi device-driver
+scsi/rz_disk_bbr.c		optional scsi device-driver
+scsi/rz_host.c			optional scsi device-driver
+scsi/rz_labels.c		optional scsi device-driver
+scsi/rz_tape.c			optional scsi device-driver
+scsi/scsi.c			optional scsi device-driver
+scsi/scsi_alldevs.c		optional scsi device-driver
+scsi/scsi_comm.c		optional scsi2 device-driver
+scsi/scsi_cpu.c			optional scsi device-driver
+scsi/scsi_disk.c		optional scsi device-driver
+scsi/scsi_jukebox.c		optional scsi2 device-driver
+scsi/scsi_optical.c		optional scsi2 device-driver
+scsi/scsi_printer.c		optional scsi device-driver
+scsi/scsi_rom.c			optional scsi device-driver
+scsi/scsi_scanner.c		optional scsi2 device-driver
+scsi/scsi_tape.c		optional scsi device-driver
+scsi/scsi_worm.c		optional scsi device-driver
+scsi/scsit.c			optional scsi device-driver
+scsi/scsi_info.c		optional scsiinfo device-driver
+
+
+ppc/POWERMAC/awacs.c		optional awacs device-driver
+ppc/POWERMAC/awacs_pdm.c	optional awacs device-driver
+
+# DUMMIES TO FORCE GENERATION OF .h FILES
+OPTIONS/hi_res_clock		optional hi_res_clock
+OPTIONS/bm			optional bm
+OPTIONS/debug			optional debug
+

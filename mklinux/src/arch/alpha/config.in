@@ -1,0 +1,165 @@
+#
+# For a description of the syntax of this configuration file,
+# see the Configure script.
+#
+mainmenu_name "Kernel configuration of Linux for Alpha machines"
+
+# clear all implied options (don't want default values for those):
+unset CONFIG_CROSSCOMPILE CONFIG_NATIVE
+unset CONFIG_PCI CONFIG_ALPHA_LCA CONFIG_ALPHA_APECS
+unset CONFIG_ALPHA_NEED_ROUNDING_EMULATION
+
+mainmenu_option next_comment
+comment 'Code maturity level options'
+bool 'Prompt for development and/or incomplete code/drivers' CONFIG_EXPERIMENTAL
+endmenu
+
+mainmenu_option next_comment
+comment 'Loadable module support'
+bool 'Enable loadable module support' CONFIG_MODULES
+if [ "$CONFIG_MODULES" = "y" ]; then
+  MODULES=y
+  bool 'Set version information on all symbols for modules' CONFIG_MODVERSIONS
+  bool 'Kernel daemon support (e.g. autoload of modules)' CONFIG_KERNELD
+fi
+endmenu
+
+mainmenu_option next_comment
+comment 'General setup'
+
+if [ "`uname`" != "Linux" ]; then
+  define_bool CONFIG_CROSSCOMPILE y
+else
+  define_bool CONFIG_NATIVE y
+fi
+
+choice 'Alpha system type' \
+	"Avanti		CONFIG_ALPHA_AVANTI		\
+	 Alpha-XL	CONFIG_ALPHA_XL			\
+	 Alpha-XLT	CONFIG_ALPHA_XLT		\
+	 Cabriolet	CONFIG_ALPHA_CABRIOLET		\
+	 EB66		CONFIG_ALPHA_EB66		\
+	 EB66+		CONFIG_ALPHA_EB66P		\
+	 EB64+		CONFIG_ALPHA_EB64P		\
+	 EB164		CONFIG_ALPHA_EB164		\
+	 PC164		CONFIG_ALPHA_PC164		\
+	 Jensen		CONFIG_ALPHA_JENSEN		\
+	 Noname		CONFIG_ALPHA_NONAME		\
+	 Mikasa		CONFIG_ALPHA_MIKASA		\
+	 Alcor		CONFIG_ALPHA_ALCOR		\
+	 Platform2000	CONFIG_ALPHA_P2K" Cabriolet
+if [ "$CONFIG_ALPHA_NONAME" = "y" -o "$CONFIG_ALPHA_EB66" = "y" \
+	-o "$CONFIG_ALPHA_EB66P" = "y" -o "$CONFIG_ALPHA_P2K" = "y" ]
+then
+	define_bool CONFIG_PCI y
+	define_bool CONFIG_ALPHA_LCA y
+fi
+if [ "$CONFIG_ALPHA_CABRIOLET" = "y" -o "$CONFIG_ALPHA_AVANTI" = "y" \
+	-o "$CONFIG_ALPHA_EB64P" = "y" -o "$CONFIG_ALPHA_MIKASA" = "y" \
+	-o "$CONFIG_ALPHA_XL" = "y" ]
+then
+	define_bool CONFIG_PCI y
+	define_bool CONFIG_ALPHA_APECS y
+fi
+if [ "$CONFIG_ALPHA_EB164" = "y" -o "$CONFIG_ALPHA_PC164" = "y" \
+	-o "$CONFIG_ALPHA_ALCOR" = "y" -o "$CONFIG_ALPHA_XLT" = "y" ]
+then
+	define_bool CONFIG_PCI y
+	define_bool CONFIG_ALPHA_EV5 y
+	define_bool CONFIG_ALPHA_CIA y
+else
+	# EV45 and older do not support all rounding modes in hw:
+	define_bool CONFIG_ALPHA_NEED_ROUNDING_EMULATION y
+fi
+
+if [ "$CONFIG_ALPHA_CABRIOLET" = "y" -o "$CONFIG_ALPHA_AVANTI" = "y" \
+	-o "$CONFIG_ALPHA_EB64P" = "y" -o "$CONFIG_ALPHA_JENSEN" = "y" \
+	-o "$CONFIG_ALPHA_MIKASA" = "y" -o "$CONFIG_ALPHA_ALCOR" = "y" ]
+then
+	bool 'Using SRM as bootloader' CONFIG_ALPHA_SRM
+fi
+if [ "$CONFIG_ALPHA_XL" = "y" ]
+then
+	define_bool CONFIG_ALPHA_AVANTI y
+fi
+
+bool 'Echo console messages on /dev/ttyS0 (COM1)' CONFIG_SERIAL_ECHO
+if [ "$CONFIG_PCI" = "y" ]; then
+  bool 'TGA Console Support' CONFIG_TGA_CONSOLE
+  if [ "$CONFIG_EXPERIMENTAL" = "y" ]; then
+    bool 'PCI bridge optimization (experimental)' CONFIG_PCI_OPTIMIZE
+  fi
+fi
+bool 'Networking support' CONFIG_NET
+bool 'System V IPC' CONFIG_SYSVIPC
+tristate 'Kernel support for a.out (ECOFF) binaries' CONFIG_BINFMT_AOUT
+tristate 'Kernel support for ELF binaries' CONFIG_BINFMT_ELF
+endmenu
+
+source drivers/block/Config.in
+
+if [ "$CONFIG_NET" = "y" ]; then
+  source net/Config.in
+fi
+
+mainmenu_option next_comment
+comment 'SCSI support'
+
+tristate 'SCSI support' CONFIG_SCSI
+
+if [ "$CONFIG_SCSI" != "n" ]; then
+  source drivers/scsi/Config.in
+fi
+endmenu
+
+if [ "$CONFIG_NET" = "y" ]; then
+  mainmenu_option next_comment
+  comment 'Network device support'
+
+  bool 'Network device support' CONFIG_NETDEVICES
+  if [ "$CONFIG_NETDEVICES" = "y" ]; then
+    source drivers/net/Config.in
+  fi
+  endmenu
+fi
+
+mainmenu_option next_comment
+comment 'ISDN subsystem'
+
+tristate 'ISDN support' CONFIG_ISDN
+if [ "$CONFIG_ISDN" != "n" ]; then
+  source drivers/isdn/Config.in
+fi
+endmenu
+
+mainmenu_option next_comment
+comment 'CD-ROM drivers (not for SCSI or IDE/ATAPI drives)'
+
+bool 'Support non-SCSI/IDE/ATAPI drives' CONFIG_CD_NO_IDESCSI
+if [ "$CONFIG_CD_NO_IDESCSI" != "n" ]; then
+  source drivers/cdrom/Config.in
+fi
+endmenu
+
+source fs/Config.in
+
+source drivers/char/Config.in
+
+mainmenu_option next_comment
+comment 'Sound'
+
+tristate 'Sound card support' CONFIG_SOUND
+if [ "$CONFIG_SOUND" != "n" ]; then
+  source drivers/sound/Config.in
+fi
+endmenu
+
+mainmenu_option next_comment
+comment 'Kernel hacking'
+
+#bool 'Debug kmalloc/kfree' CONFIG_DEBUG_MALLOC
+bool 'Kernel profiling support' CONFIG_PROFILE
+if [ "$CONFIG_PROFILE" = "y" ]; then
+  int ' Profile shift count' CONFIG_PROFILE_SHIFT 2
+fi
+endmenu

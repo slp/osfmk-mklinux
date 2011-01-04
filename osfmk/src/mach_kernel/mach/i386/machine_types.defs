@@ -1,0 +1,63 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+/*
+ *	Header file for basic, machine-dependent data types.  i386 version.
+ */
+
+#ifndef	_MACHINE_VM_TYPES_DEFS_
+#define	_MACHINE_VM_TYPES_DEFS_	1
+
+/*
+ * A natural_t is the type for the native
+ * integer type, e.g. 32 or 64 or.. whatever
+ * register size the machine has.  Unsigned, it is
+ * used for entities that might be either
+ * unsigned integers or pointers, and for
+ * type-casting between the two.
+ * For instance, the IPC system represents
+ * a port in user space as an integer and
+ * in kernel space as a pointer.
+ */
+type natural_t = unsigned32;
+
+/*
+ * An integer_t is the signed counterpart
+ * of the natural_t type. Both types are
+ * only supposed to be used to define
+ * other types in a machine-independent
+ * way.
+ */
+type integer_t = int32;
+
+
+#if	MACH_IPC_COMPAT
+/*
+ * For the old IPC interface
+ */
+#define	MSG_TYPE_PORT_NAME	MACH_MSG_TYPE_INTEGER_32
+
+#endif	/* MACH_IPC_COMPAT */
+
+
+#endif	/* _MACHINE_VM_TYPES_DEFS_ */

@@ -1,0 +1,63 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+/*     
+ * xk_mig_t.defs
+ *
+ * x-kernel v3.2
+ *
+ * Copyright (c) 1993,1991,1990  Arizona Board of Regents
+ *
+ *
+ * Revision: 1.5
+ * Date: 1993/07/22 20:00:53
+ */
+
+#include <xkern/protocols/proxy/xk_mig_sizes.h>
+import   <xkern/protocols/proxy/xk_mig_sizes.h>;
+
+type	xk_string_80_t	= c_string[*:80];
+type	xk_string_t	= xk_string_80_t;
+
+type	protl_name_t	= c_string[*:80];
+type	xobj_ext_id_t	= MACH_MSG_TYPE_INTEGER_32;
+
+type	xk_xobj_dump_t	= struct[XOBJ_DUMP_LEN] of int;
+type	xkern_return_t	= MACH_MSG_TYPE_INTEGER_32;
+
+type	xk_part_t	= array[PART_EXT_BUF_LEN] of int;
+
+type	xk_ctl_buf_t	= array[XK_MAX_CTL_BUF_LEN] of char;
+
+#if 0
+type	xk_msg_info_t	= struct[XK_MSG_INFO_LEN] of int;
+#endif
+
+type	xk_msg_data_t	= array[*:XK_MAX_MSG_INLINE_LEN] of char;
+type	xk_msg_attr_t	= array[*:XK_MAX_MSG_ATTR_LEN] of char;
+type	xk_large_msg_data_t	= ^array[] of char;
+type	xmsg_handle_t	= MACH_MSG_TYPE_INTEGER_32;
+type	xk_path_t	= MACH_MSG_TYPE_INTEGER_32;
+
+import <xkern/protocols/proxy/xk_mig_t.h>;
+

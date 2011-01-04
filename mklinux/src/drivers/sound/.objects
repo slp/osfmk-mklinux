@@ -1,0 +1,97 @@
+OBJS=
+
+ifdef CONFIG_AD1848
+	OBJS := $(OBJS)  ad1848.o
+endif
+
+ifdef CONFIG_YM3812
+	OBJS := $(OBJS)  adlib_card.o
+endif
+
+ifdef CONFIG_AEDSP16
+	OBJS := $(OBJS)  aedsp16.o
+endif
+
+ifdef CONFIG_AUDIO
+	OBJS := $(OBJS)  audio.o
+endif
+
+ifdef CONFIG_CS4232
+	OBJS := $(OBJS)  cs4232.o
+endif
+
+ifdef CONFIG_AUDIO
+	OBJS := $(OBJS)  dmabuf.o
+endif
+
+ifdef CONFIG_GUS
+	OBJS := $(OBJS)  gus_card.o gus_midi.o gus_vol.o gus_wave.o ics2101.o
+endif
+
+ifdef CONFIG_MAD16
+	OBJS := $(OBJS)  mad16.o
+endif
+
+ifdef CONFIG_MAUI
+	OBJS := $(OBJS)  maui.o
+endif
+
+ifdef CONFIG_MIDI
+	OBJS := $(OBJS)  midi_synth.o midibuf.o
+endif
+
+ifdef CONFIG_MPU401
+	OBJS := $(OBJS)  mpu401.o
+else
+  ifdef CONFIG_MPU_EMU
+	OBJS := $(OBJS)  mpu401.o
+  endif
+endif
+
+ifdef CONFIG_YM3812
+	OBJS := $(OBJS)  opl3.o
+endif
+
+ifdef CONFIG_PAS
+	OBJS := $(OBJS)  pas2_card.o pas2_midi.o pas2_mixer.o pas2_pcm.o
+endif
+
+ifdef CONFIG_SEQUENCER
+	OBJS := $(OBJS)  patmgr.o
+endif
+
+ifdef CONFIG_PSS
+	OBJS := $(OBJS)  pss.o
+endif
+
+ifdef CONFIG_SBDSP
+	OBJS := $(OBJS) sb_card.o sb_common.o sb_audio.o sb_mixer.o sb_midi.o
+endif
+
+ifdef CONFIG_SEQUENCER
+	OBJS := $(OBJS)  sequencer.o
+endif
+
+ifdef CONFIG_SEQUENCER
+	OBJS := $(OBJS)  sound_timer.o
+endif
+
+ifdef CONFIG_SSCAPE
+	OBJS := $(OBJS)  sscape.o
+endif
+
+ifdef CONFIG_TRIX
+	OBJS := $(OBJS)  trix.o
+endif
+
+ifdef CONFIG_SEQUENCER
+	OBJS := $(OBJS)  sys_timer.o
+endif
+
+ifdef CONFIG_UART6850
+	OBJS := $(OBJS)  uart6850.o
+endif
+
+ifdef CONFIG_UART401
+	OBJS := $(OBJS)  uart401.o
+endif

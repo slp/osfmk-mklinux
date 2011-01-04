@@ -1,0 +1,55 @@
+# 
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+#
+
+The mklilo program is used to build images that LILO (the linux boot)
+is capable of loading.
+
+The syntax is:
+
+ mklilo <boot sector> <setup program> <kernel image> > <output_file>
+
+In the Mach case, the kernel image is the secondary bootstrap:
+obj/at386/stand/AT386/boot/secondary/mach_boot.lilo
+
+The original bootsect and setup files from linux should be used.
+
+The /etc/lilo.conf file must be edited with a new image description:
+
+image = /mach_boot
+  root = /dev/hda0 
+  label = mach_boot
+  append = "serial"
+
+The root and append option lines are optional.
+The append = "serial" enables the mach_boot remote console
+
+
+
+
+
+
+
+
+
+
+

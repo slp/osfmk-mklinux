@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# build_world - feel free to uncomment or comment out lines
+#               of this script as needed.
+
+# Build the OSF MK header files
+build MAKEFILE_PASS=FIRST
+
+# Build the OSF MK libraries
+build -here mach_services/lib/libcthreads
+build -here mach_services/lib/libsa_mach
+build -here mach_services/lib/libmach
+build -here mach_services/lib/libmach_maxonstack
+
+# Uncomment these lines to make the "export" tar file
+# (cd ../../.. ; \
+#  tar cf - DR3/osfmk/export | \
+#  gzip -c --best > DR3.osfmk.export.tgz)
+
+# Build the file_systems library (for the bootstrap task)
+# and then the bootstrap task itself
+build -here file_systems
+build -here bootstrap
+
+# Build the microkernel
+build -here mach_kernel MACH_KERNEL_CONFIG=PRODUCTION
+
+# Jam the bootstrap and microkernel together to make "Mach_Kernel"
+makeboot
+
+# Build	the default pager
+#build -here default_pager
+
+# Build	the name_server and its libraries
+#build -here mach_services/lib/libservice
+#build -here mach_services/lib/libnetname
+#build -here mach_services/servers/netname
+
+# Build the microkernel performance test suite
+#build -here mach_services/cmds/mach_perf

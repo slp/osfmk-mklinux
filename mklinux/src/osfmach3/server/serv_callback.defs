@@ -1,0 +1,35 @@
+/*
+ * Copyright (c) 1991-1998 Open Software Foundation, Inc. 
+ *  
+ * 
+ */
+/*
+ * MkLinux
+ */
+
+/*
+ * Server to server IPC definitions.
+ */
+
+#include <mach/mach_types.defs>
+
+/* WARNING: The following starting routin number must be close to the
+ * range used in mach/exc.defs (but the routine numbers must not overlap),
+ * because we will create a subsystem that is the union of this one and
+ * the exception subsystem.  This is so that we can do mach_rpc to both
+ * subsystems on the same port
+ */
+subsystem serv_callback 2410;
+
+UserPrefix send_;
+
+simpleroutine serv_callback_no_op(
+		port:		mach_port_t);
+
+/* Used when system-calls are being received via RPC: */
+routine serv_callback_fake_interrupt_rpc(
+		trap_port:	mach_port_t);
+
+/* Used when system-calls are being received via mach_msg: */
+simpleroutine serv_callback_fake_interrupt(
+		trap_port:	mach_port_t);

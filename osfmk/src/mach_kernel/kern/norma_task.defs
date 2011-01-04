@@ -1,0 +1,58 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ * 
+ */
+/*
+ * MkLinux
+ */
+
+subsystem
+#if	KERNEL_USER
+	  KernelUser
+#endif	/* KERNEL_USER */
+#if	KERNEL_SERVER
+	  KernelServer
+#endif	/* KERNEL_SERVER */
+		       norma_task_internal 1400;
+#ifdef	KERNEL_USER
+userprefix r_;
+#endif	/* KERNEL_USER */
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+import <kern/norma_types.h>;
+
+type norma_registered_port_array_t	= array[*:16] of mach_port_t;
+
+/*
+ * Create a task with no inherited address space on the given node.
+ * Used to implement norma_task_create.
+ */
+routine norma_task_allocate(
+		host_priv	: host_priv_t;
+		vector_start	: int;
+		emulation_vector: emulation_vector_t;
+		bootstrap	: mach_port_t;
+		registered	: norma_registered_port_array_t;
+		exc_masks	: exception_mask_array_t;
+		exc_ports	: exception_port_array_t, SameCount;
+		exc_behaviors	: exception_behavior_array_t, SameCount;
+		exc_flavors	: exception_flavor_array_t, SameCount;
+	out	task		: task_t);

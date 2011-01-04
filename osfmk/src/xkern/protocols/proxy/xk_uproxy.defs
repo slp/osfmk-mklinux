@@ -1,0 +1,221 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+/*     
+ * xk_uproxy.defs
+ *
+ * x-kernel v3.2
+ *
+ * Copyright (c) 1993,1991,1990  Arizona Board of Regents
+ *
+ *
+ * Revision: 1.10
+ * Date: 1993/09/16 22:04:16
+ */
+
+
+
+subsystem  
+#ifdef MACH_KERNEL
+KernelServer
+#endif
+xk_uproxy 844415;	
+
+userprefix call_uproxy_;
+serverprefix do_uproxy_;
+
+#include <mach/std_types.defs>
+
+rcsid "$Header: /u1/osc/rcs/xkern/protocols/proxy/xk_uproxy.defs,v 1.1.9.2 1995/05/14 21:36:06 dwm Exp $";
+
+
+#include <xkern/protocols/proxy/xk_mig_t.defs>
+
+/* simport <xkern/protocols/proxy/uproxy.h>; */
+uimport <xkern/include/assert.h>;
+uimport <xkern/protocols/proxy/proxy_offset.h>;
+
+routine
+abort
+(
+	reqPort	:	mach_port_t;
+	lproxyPort :	mach_port_make_send_t
+);
+
+
+
+routine
+xGetProtlByName
+(
+	reqPort	:	mach_port_t;
+	name	:	xk_string_80_t;
+    out	protl	:	xobj_ext_id_t
+);
+	
+
+/* 
+ * MIG doesn't support variable length in-out arguments.  
+ * Control is never supposed to be on the fast path anyway, so 
+ * we'll just copy the entire buffer.  
+ */
+routine
+xControl
+(
+	reqPort	:	mach_port_t;
+	obj	:	xobj_ext_id_t;
+	opcode	:	int;
+ inout 	buf	:	xk_ctl_buf_t;
+ inout	bufLen	:	int
+);	
+
+
+routine
+xOpenEnable
+(
+	reqPort	:	mach_port_t;
+	lproxyPort :	mach_port_make_send_t;
+    out retVal	:	xkern_return_t;
+	hlpRcv	:	xobj_ext_id_t;
+	hlpType	:	xobj_ext_id_t;
+	llp	:	xobj_ext_id_t;
+	part	:	xk_part_t
+);
+
+
+routine
+xOpenDisable
+(
+	reqPort	:	mach_port_t;
+	lproxyPort :	mach_port_make_send_t;
+    out retVal	:	xkern_return_t;
+	hlpRcv	:	xobj_ext_id_t;
+	hlpType	:	xobj_ext_id_t;
+	llp	:	xobj_ext_id_t;
+	part	:	xk_part_t
+);
+
+
+routine
+xOpen
+(
+	reqPort	:	mach_port_t;
+	lproxyPort :	mach_port_make_send_t;
+    out retObj	:	xobj_ext_id_t;
+	hlpRcv	:	xobj_ext_id_t;
+	hlpType	:	xobj_ext_id_t;
+	llp	:	xobj_ext_id_t;
+	part	:	xk_part_t;
+	path	:	xk_path_t
+);
+
+
+routine
+dumpXObj
+(
+	reqPort	:	mach_port_t;
+    out	retVal	:	xkern_return_t;
+	obj	:	xobj_ext_id_t;
+    out	dump	:	xk_xobj_dump_t
+);
+
+
+/* 
+ * Make sure the lproxy protocol has a handle on the indicated lower session
+ */
+routine
+xDuplicate
+(
+	reqPort	:	mach_port_t;
+	lproxyPort :	mach_port_make_send_t;
+    out	retVal	:	xkern_return_t;
+	hlp	:	xobj_ext_id_t;
+	obj	:	xobj_ext_id_t
+);
+
+
+routine
+xPush
+(
+	reqPort	:	mach_port_t;
+    out	handle	:	xmsg_handle_t;
+	lls	:	xobj_ext_id_t;
+	xmsg	:	xk_msg_data_t;
+	xmsgool :	xk_large_msg_data_t, physicalcopy;
+	attr	:	xk_msg_attr_t;
+	path	:	xk_path_t
+);
+
+
+
+routine
+xCall
+(
+	reqPort	:	mach_port_t;
+    out	retVal	:	xkern_return_t;
+	lls	:	xobj_ext_id_t;
+	reqmsg	:	xk_msg_data_t;
+	reqool  :	xk_large_msg_data_t, physicalcopy; 
+    out	repmsg	:	xk_msg_data_t;
+    out	repool  :	xk_large_msg_data_t;
+	reqAttr	:	xk_msg_attr_t;
+	reqPath	:	xk_path_t;
+  inout	repPath	:	xk_path_t
+);
+
+
+
+
+routine
+xClose
+(
+	reqPort	:	mach_port_t;
+    out	retVal	:	xkern_return_t;
+    	lls	:	xobj_ext_id_t
+);
+
+
+
+routine
+ping
+(
+	reqPort	:	mach_port_t
+);
+
+
+routine
+pingtest
+(
+	reqPort	:	mach_port_t;
+	repPort	:	mach_port_make_send_t;
+	number	:	int
+);
+
+
+routine
+establishPath
+(
+	reqPort	:	mach_port_t;
+	domPort	:	mach_port_make_send_t;
+	pathPort:	mach_port_make_send_t;
+	path	:	xk_path_t
+);

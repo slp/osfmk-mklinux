@@ -1,0 +1,43 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+
+#ifndef	_MACH_DEFAULT_PAGER_TYPES_DEFS_
+#define _MACH_DEFAULT_PAGER_TYPES_DEFS_
+
+#include <mach/std_types.defs>
+
+type default_pager_info_t		= struct[3] of natural_t;
+
+type default_pager_object_t		= struct[2] of natural_t;
+type default_pager_object_array_t	= array[] of default_pager_object_t;
+
+type default_pager_page_t		= struct[1] of natural_t;
+type default_pager_page_array_t		= array[] of default_pager_page_t;
+
+type backing_store_flavor_t		= integer_t;
+type backing_store_info_t		= array[*:20] of integer_t;
+
+import <mach/default_pager_types.h>;
+
+#endif	_MACH_DEFAULT_PAGER_TYPES_DEFS_

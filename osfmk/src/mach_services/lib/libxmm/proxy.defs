@@ -1,0 +1,128 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/* 
+ * Mach Operating System
+ * Copyright (c) 1991 Carnegie Mellon University
+ * All Rights Reserved.
+ * 
+ * Permission to use, copy, modify and distribute this software and its
+ * documentation is hereby granted, provided that both the copyright
+ * notice and this permission notice appear in all copies of the
+ * software, derivative works or modified versions, and any portions
+ * thereof, and that both notices appear in supporting documentation.
+ * 
+ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS 
+ * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+ * 
+ * Carnegie Mellon requests users of this software to return to
+ * 
+ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+ *  School of Computer Science
+ *  Carnegie Mellon University
+ *  Pittsburgh PA 15213-3890
+ * 
+ * any improvements or extensions that they make and grant Carnegie the
+ * rights to redistribute these changes.
+ */
+/*
+ * MkLinux
+ */
+/*
+ *	File:	proxy.defs
+ *	Author:	Joseph S. Barrera III
+ *	Date:	1991
+ *
+ *	Definitions for talking to remote memory manager.
+ */
+
+subsystem proxy 2038;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+/* 2038 */
+simpleroutine proxy_data_provided(
+		memory_control	: memory_object_control_t;
+		offset		: vm_offset_t;
+		data		: pointer_t;
+		lock_value	: vm_prot_t);
+
+/* 2039 */
+simpleroutine proxy_data_unavailable(
+		memory_control	: memory_object_control_t;
+		offset		: vm_offset_t;
+		size		: vm_size_t);
+
+/* 2040 */
+routine proxy_get_attributes(
+		memory_control	: memory_object_control_t;
+	out	object_ready	: boolean_t;
+	out	may_cache	: boolean_t;
+	out	copy_strategy	: memory_object_copy_strategy_t);
+
+/* 2041 .. 2042 */
+skip; skip;
+
+/* 2043 */
+simpleroutine proxy_lock_request(
+		memory_control	: memory_object_control_t;
+		offset		: vm_offset_t;
+		size		: vm_size_t;
+		should_clean	: boolean_t;
+		should_flush	: boolean_t;
+		lock_value	: vm_prot_t;
+		reply_to	: mach_port_t =
+			MACH_MSG_TYPE_MAKE_SEND_ONCE|polymorphic);
+
+/* 2044 .. 2049 */
+			skip; skip; skip; skip; skip; skip;
+
+/* 2050 .. 2059 */
+skip; skip; skip; skip; skip; skip; skip; skip; skip; skip; 
+
+/* 2060 .. 2069 */
+skip; skip; skip; skip; skip; skip; skip; skip; skip; skip; 
+
+/* 2070 .. 2079 */
+skip; skip; skip; skip; skip; skip; skip; skip; skip; skip; 
+
+/* 2080 .. 2089 */
+skip; skip; skip; skip; skip; skip; skip; skip; skip; skip; 
+
+/* 2090 */
+simpleroutine proxy_data_error(
+		memory_control	: memory_object_control_t;
+		offset		: vm_offset_t;
+		size		: vm_size_t;
+		error_value	: kern_return_t);
+
+/* 2091 */
+simpleroutine proxy_set_attributes(
+		memory_control	: memory_object_control_t;
+		object_ready	: boolean_t;
+		may_cache	: boolean_t;
+		copy_strategy	: memory_object_copy_strategy_t);
+
+/* 2092 */
+simpleroutine proxy_destroy(
+		memory_control	: memory_object_control_t;
+		reason		: kern_return_t);

@@ -1,0 +1,69 @@
+SO_BINDTODEVICE socket option for Linux 2.0.30+
+by Elliot Poger (elliot@poger.com)
+of Stanford's MosquitoNet project (http://mosquitonet.stanford.edu)
+
+Using the SO_BINDTODEVICE socket option allows your user-level Berkeley
+sockets code to explicitly select which network interface is used for
+both input and output on a per-socket basis.  I originally wrote it to 
+allow the Internet Software Consortium DHCP server 
+(http://www.fugue.com/dhcp/) to run on Linux machines with multiple 
+interfaces.  It has been tested with UDP and TCP sockets.
+
+Usage is as follows:
+
+
+        int skfd;
+        struct ifreq interface;
+
+        skfd = socket(AF_INET, SOCK_DGRAM, 0);
+        strncpy(interface.ifr_ifrn.ifrn_name, "eth1", IFNAMSIZ);
+        if (setsockopt(skfd, SOL_SOCKET, SO_BINDTODEVICE,
+                       (char *)&interface, sizeof(interface)) < 0) {
+                perror("sendpacket: setting SO_BINDTODEVICE");
+                exit(1);
+        }
+
+
+Once the BINDTODEVICE socket option has been set for a socket, as above,
+any data sent over this socket is guaranteed to go out of the "eth1" 
+interface, and any data received through the socket is guaranteed to 
+have arrived on eth1.  If you want to send and receive over multiple
+interfaces, keeping them separate, you can open several sockets and bind
+each one to a different interface with SO_BINDTODEVICE.  (You _can_ call
+BINDTODEVICE more than once for a socket to change the interface it's 
+bound to, but results may be unpredictable because of caching effects
+in the kernel...)
+
+Note that the routing table is still consulted when packets are transmitted.
+Basically, routing proceeds as usual, except that any routes which go
+through a network interface other than the one specified in the BINDTODEVICE
+call are ignored.  If you attempt to send a packet to a certain IP address 
+through an interface which provides no route to that IP address, you'll get
+a "network unreachable" error.  Here is an example of a routing table which
+will allow you to send packets to any IP address through either eth0 or
+eth1:
+
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+171.64.69.0     0.0.0.0         255.255.255.192 U     0      0       37 eth0
+171.64.69.192   0.0.0.0         255.255.255.192 U     0      0      677 eth1
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        4 lo
+0.0.0.0         171.64.69.1     0.0.0.0         UG    0      0       45 eth0
+0.0.0.0         171.64.69.193   0.0.0.0         UG    1      0        5 eth1
+
+Note that there are actually TWO default routes.  The routing table is
+searched from top to bottom, so every time you send out a packet, the first
+(uppermost) matching route which the kernel routing function finds which
+matches the destination IP address is used.  In this case, packets sent to
+the IP address 152.2.128.159 will normally be sent through eth0 and gateway
+171.64.69.1; if the socket is bound to the eth1 device, the packets will be
+sent through eth1 and gateway 171.64.69.193; if the socket is bound to some
+other device, you will get a "network unreachable" error. 
+
+By the way, you can add multiple default routes and set the order of
+preference as follows:
+
+route add default gateway 171.64.69.1
+route add default gateway 171.64.69.193 metric 1
+
+Routes with a higher "metric" are put lower in the table and thus have a 
+lower preference.

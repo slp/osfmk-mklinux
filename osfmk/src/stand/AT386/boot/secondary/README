@@ -1,0 +1,243 @@
+# 
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+#
+
+The mach_boot program is the secondary bootstrap program used to
+load the Mach microkernel and its associated first task (usually the
+bootstrap task) if any. The mach_boot program performs character I/O
+through the PC/AT console (Usualy the VGA/KBD devices). The mach_boot
+flavor can perform character I/O through both the PC/AT console and
+COM1. It also has networking capabilities as explained further.
+
+The secondary bootstrap  can be loaded with an old a.out boot provided
+one runs the makeboot program on it:
+	makeboot -T 100000 -o mach_boot.a_out mach_boot
+
+It should be installed as /mach_boot, it is the 
+program loaded by default by the primary loader.
+
+The functionalities included in this secondary boot lead to a rather
+large object file, larger than the maximum size desired for the
+primary boots (8K).
+
+The secondary boot understands FFS and LINUX File Systems. It only
+recognizes Elf format. It copies itself in the bootstrap original
+place (0x1000) and execute sitself in place of the primary bootstrap. 
+
+The secondary boot can also download files through the network (see
+further of how to set up a network bootstrap).
+
+The remote console dis/enabling is passed from the primary. If a
+primary uses the remote console, it will enabled consequently in the
+secondary. Likewise, if the remote console was not used or if the
+primary has no remote console enabled, the remote console will be
+disabled in the secondary.
+
+NB: at the console, you can still type /mach_boot -r, where -r enable
+the remote console, even with a no-remote-console primary. However, if
+no remote console was set by the primary, specifying CONSOLE=com will
+have no effect and the secondary will continue with the remote console
+disabled.
+
+The secondary boot prompts for kernel and bootstrap names and
+arguments with the following syntax:
+
+boot: [<kernel-file>] [kernel-flags] [--] [<bootstrap-file>] [bootstrap-flags]
+
+	where <*-file> has the syntax: [<device_name>]/<file_name>
+
+	Note that <bootstrap-file> can be replaced by the 'null' or 'none'
+	to avoid starting a first task on the <kernel>.
+
+	device_names are :
+		hd(<unit>,<unix_partition)	/* PC HD */
+		sd(<unit>,<unix_partition)	/* SCSI */
+		fd(<unit>,<format>)		/* FLOPPY */
+		wd(<unit>)			/* NETWORK */
+
+		partitions are in the range a..p
+		If a vtoc is detected in the active BIOS partitions, "mach"
+		partitions are obtained from there.
+		Otherwise partitions are mapped one to one with BIOS ones.
+		Examples:
+			hd(1,a)
+			sd(1,e)
+			hd(0,A)
+
+		The default device is the one bootstrapped by Bios.
+
+	The file_name in the case of a network refers to the root
+	directory on the TFTP server (which may not always be the real
+	root directory if tftpd was started with -s /secure option/).
+	The supported ethernet boards are 3C503 and SMC (formerly Western
+	Digital) 80x3, 8208, 8x16 on an AT bus.
+
+or
+boot: <configuration-file>
+
+	where configuration-file is a text file containing the
+	environment variables as described below. A message
+	from the Elf loader will tell you the file has a bad format
+	and then you see 'Reading defaults from <configuration-file>'
+	telling you it has loaded the new defaults. Typing CR at the
+	new prompt will boot the new configuration as described by
+	<configuration-file>.
+
+If no command line is typed in (a timeout occurs) or if one
+just types <Return>, the mach_boot program will check for a
+/mach_boot.env file. If any it will check for the following
+environment variables:
+	KERNEL_NAME=<value>
+	KERNEL_ARGS=<value>
+	BOOTSTRAP_NAME=<value>
+	BOOTSTRAP_ARGS=<value> 
+and will use the associated values for
+<kernel-file>, <kernel-flags>, <bootstrap-file> and <bootstrap-flags>.
+
+It this file is not found or if some of the environment variables 
+are undefined, the defaults are:
+	<kernel-file>		/mach_kernel
+	<kernel-args>		-r (if console is COM1)
+	<bootstrap-file>	/mach_servers/bootstrap
+	<bootstrap-flags>	
+
+The /mach_boot.env is also scanned for the environment variable. 
+
+	CONSOLE		Can either be vga or com. This permits
+			to enforce the use of a desired device.
+			Note that CONSOLE=com has no effect if the 
+			mach_boot program is loaded by a previous
+			boot that enabled the remote console.
+	PROMPT		If set to 1, the boot will prompt and will
+			not timeout to automatically boot default files.
+	DELAYPROMPT	If defined, it sets the delay of idle input
+			before automatically booting.
+	COM1_SETUP	if defined, combinations of the following values
+			are recognized:
+			1200|2400|4800|9600|EVENP|ODDP|CS8|CS7
+
+The secondary stage boot is linked with the libsa_fs library. This library
+invokes mach microkernel interfaces to perform I/Os and manage memory. 
+The mach_boot.c source file provides emulations for these services.
+
+The mach_boot.lilo can be loaded from the linux LILO boot. First it must
+be combined with a boot sector and a setup program using the mklilo command.
+See src/stand/AT386/boot/lilo/README for more information.
+
+Appendix: How to configure and use the network boot:
+----------------------------------------------------
+
+1. Create a bootable floppy
+---------------------------
+	- create a bootable floppy
+		floppy format fd0
+		newfs fd0
+
+	- put the primary boot onto sector 0 of the floppy
+		dd if=boot of=/dev/rfd0 bs=1k conv=sync
+
+	- copy the secondary boot on the floppy
+		fsck -y /dev/rfd0
+		mount /dev/fd0 /mnt
+		cp mach_boot /mnt
+		umount /mnt
+
+1bis. Have a network boot on hard disk
+--------------------------------------
+	- if you do not already have a primary boot on your hard disk,
+	  put a primary boot on the hard disk
+		dd if=boot of=/dev/rhd0c bs=1k conv=sync
+		
+	- copy the secondary boot
+		cp mach_boot /
+
+Remark: these versions of boot can be used with the com:
+
+2. Configure the network bootp server
+-------------------------------------
+	- choose a machine on which the server will run
+		in Grenoble, biplan is used to this purpose.
+		Note for Grenoble: please do only use biplan
+		in order to reduce entropy.
+
+	- edit /etc/bootptab and configure it as shown in
+		/afs/gr/tools/tftpboot/yp/bootptab.demo
+
+		you must know the ethernet and internet addresses
+		of your machine to be network-booted and fill in 
+		the ha= and ip= fields. Adjust the rp=hd() to
+		boot from another disk (scsi) or unit or partition.
+
+	[ - force the bootp daemon to re-read the configuration if necessary ]
+
+3. Boot your machine from the network
+-------------------------------------
+
+	- reboot the machine, and the boot prompt
+
+>> Network Mach boot <date of build>
+
+>> 640/15360k (? for help, ^C for intr)
+
+boot: _
+
+	appears on the screen.
+
+	- type "wd(0)/afs/.../mach_kernel" where the ellipsis stands
+	for the path pointing to your binary.
+
+	- in case of error :-), have a look at /var/adm/syslog/daemon.log,
+	perhaps you simply did not configure correctly the configuration file
+	bootptab, or because the bootpd has no access right for the
+	directory you specified (it can be a security leak to open to
+	everybody, a fortiori root, sandbox directories...). Another
+	troubleshooting tip is to check that the ethernet board is well
+	configured (e.g. the network boot reads the shared memory address used
+	for passing messages from board to memory). Typical configuration is
+	port 0x280, 0xd0000, IRQ 2.
+ 
+	- to boot as before, just type carriage return or
+	the full path, with dirve specification e.g. hd(0,a),...
+	as before.
+
+Remark:
+	- You can abort a transfer by hitting ^C.
+
+	- Don't be surprized by the abstruse messages appearing on the screen:
+	The network behaves just as a disk device (opened, read, ...).
+	There is a finite state machine to drive the downloading. However, 
+	because the elf loader does random access not always in a
+	sequential order, I cached some parts of the file (the first 4K
+	and a "moving" cache caching the most recent 4K due to page
+	boundary alignment problem) but it is sometimes impossible to
+	avoid from restarting the downloading from the beginning...
+	So, don't worry! The file is just downloaded again to satisfy
+	some pecularities of elf format.
+
+	It has even some ICMP control in case of network errors, so 
+	I think it is now relatively stable, but any idea
+	to improve it is wellcome.
+
+ToDo:
+	- cache the entire in high memory when available to avoid
+	loading the file again.
+

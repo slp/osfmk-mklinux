@@ -1,0 +1,14 @@
+You will find a subset of the documentation in
+
+                 linux/Documentation/networking/z8530drv.txt
+
+To use this driver you MUST have the full package "z8530drv-2.4c.dl1bke.tar.gz"
+from either ftp.pspt.fi, sunsite.unc.edu or db0bm.automation.fh-aachen.de. 
+The package includes the utilities necessary to initialize and control the driver.
+
+Do not try to use the utilities from z8530drv-utils-3.0 as they will not work
+with the 2.4 series of the driver!
+
+Joerg Reuter	ampr-net: dl1bke@db0pra.ampr.org
+		WWW     : http://www.rat.de/jr
+		Internet: jreuter@poboxes.com

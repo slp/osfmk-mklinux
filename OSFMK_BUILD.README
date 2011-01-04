@@ -1,0 +1,221 @@
+	How To Build The OSF Microkernel (or at least most of it)
+	=========================================================
+
+
+	If there are errors or inaccuracies in this document, or if you
+	still can't build the sources, please refer to the web page
+	below for further information about what to do:
+
+		http://www.mklinux.apple.com
+
+	If you want to discuss MkLinux, there are some mailing lists
+	available, please see the above web page for information.
+	
+	The "comp.os.mach" newsgroup is dedicated to discussions on the
+	Mach microkernel and related projects.
+
+	We also have set up a Frequently Asked Questions (FAQ) page on the
+	WWW site, listing the most common problems (and their solutions)
+	as soon as we get some reports.  Please check this page to see if
+	your problem has already been reported and if there's a solution.
+
+
+0. Source base
+
+	We suppose that you've extracted the source archives in the /usr/src
+	directory. If you want to extract the sources in another directory,
+	you'll have to substitute the correct path to "/usr/src".
+
+
+1. Add the Mach and ODE tools to your PATH
+
+	You'll need the ODE (OSF Development Environment) tools.  If you
+	haven't already obtained them, they are contained in the archive
+	ode-bin.tgz.  Extract it into /usr/src/  (Yes, this isn't the
+	best place for it, but we'll fix that at some future date).
+
+	So, the ODE tools are now in /usr/src/ode-bin/ppc_linux/bin/
+	It is recommended that you use the "set_ode_path.sh" script,
+	which will automatically set your PATH to the correct value
+	depending on whether you're in an ODE sandbox or not.  Just
+	add the following line to your "~/.bashrc" file:
+
+		. /usr/src/DR3/set_ode_path.sh
+
+	Note: If you create a .bashrc, make sure that you use bash as
+	your default shell, not sh, which is a symbolic link to bash.
+	Use 'echo $SHELL' to be sure. If $SHELL is /bin/sh then you need
+	to execute 'chsh' and set the shell to /bin/bash, before
+	logging back in again.  Also note that the .bashrc file is
+	_not_ executed by default at login, so source it from your
+	.bash_profile too (or simply source your .bashrc from there).
+
+	The PATH is not always set to the same value because in some
+	situations (when building the microkernel you want to use the
+	ODE "make" command, while you want to use the Linux "make"
+	command when building the Linux server).  If "make" complains about
+	the syntax of a Makefile, you're probably using the wrong "make"
+	command.
+
+	Some Mach tools are also needed to build the Linux server.  The
+	"set_ode_path.sh" script takes care of that too. The tools are
+	in /usr/src/DR3/osfmk/tools/ppc/ppc_linux/hostbin/
+	Check that "mig" and "migcom" are correctly found in this directory.
+
+
+2. Edit and install your ~/.sandboxrc file
+
+	If you've never used ODE, use the "sandboxrc.template" file.
+	Install this file as "~/.sandboxrc" in your HOME directory.
+
+		$ cp /usr/src/DR3/sandboxrc.template ~/.sandboxrc
+
+	Edit it to reflect the place where you've installed the OSF MK sources
+	(the "base" line should point to the "DR3" directory, the
+	directory containing the "osfmk" subdirectory).
+
+
+3. Add a USER environment variable
+
+	Set it to whatever you want.
+	Usually, this works fine:
+	
+	$ export USER=$LOGNAME
+
+	It's a good idea to add this to your ~/.bash_profile file.
+
+
+4. Enter the OSF microkernel sandbox.
+
+	$ workon -sb osfmk
+	cd'ing to sandbox source directory: /usr/src/DR3/osfmk/src.
+	project: osc
+	starting new shell: /bin/bash.
+	$
+
+	This command will start a new shell after setting up the environment
+	for ODE.  The current directory is now:
+		/usr/src/DR3/osfmk/src
+
+	
+5. Build the Microkernel
+
+	There are lots of things to build in the osfmk tree.  There's a
+	script in the /usr/src/DR3 directory called build_world
+	which will build a nice set of useful things.  Feel free to
+	edit build_world to build (or not build) your favorite pieces
+	of the Microkernel tree.  Left alone, the build_world script
+	will:
+
+	1) build header files and libraries required for mach tasks
+	   (such as the Linux single server)
+	2) build the bootstrap task
+	3) build a "production" (ie. non-debugging) version of the
+	   microkernel
+	4) run "makeboot" to produce the Mach_Kernel image that goes
+	   into your Extensions folder.
+
+	To execute the build world script (you're still in
+	/usr/src/DR3/osfmk/src, right?), do this:
+
+	$ ../../build_world
+
+
+	Some of the things that are commented out (but you can enable
+	them by editing the build_world script) are:
+		building the default pager
+		building the nameserver
+		building the microkernel performance test suite
+
+
+6. OR... Build Everything by hand
+
+	If you don't want to use the build_world script, or if you want
+	to know more about what build_world is doing, the following
+	steps give some details on the individual build commands. 
+
+7. Build the OSF MK header files
+
+	$ build MAKEFILE_PASS=FIRST
+
+8. Build the OSF MK libraries
+
+	$ build -here mach_services/lib/libcthreads
+	$ build -here mach_services/lib/libsa_mach
+	$ build -here mach_services/lib/libmach
+	$ build -here mach_services/lib/libmach_maxonstack
+
+
+9. You can stop now, if you're just going to rebuild the Linux Server
+
+	You've now built the libraries in the Microkernel tree that
+	are needed for building the Linux single server, which is
+	a task run "on top of" the microkernel.  If you want, you
+	may stop building microkernel pieces at this point and simply
+	move on to building the Linux server.
+	
+	See the MKLINUX_BUILD.README for further instructions on building
+	the Linux server.
+
+	If you want to complete building the microkernel, continue
+	on with these instructions...
+
+10. More to build
+
+	Some other parts of the microkernel source tree can be built
+	on a Linux system.
+
+	The file_systems library (for the bootstrap task):
+	$ build -here file_systems
+
+	The bootstrap task:
+	$ build -here bootstrap
+
+	The default pager:
+	$ build -here default_pager
+
+	The name_server and its libraries:
+	$ build -here mach_services/lib/libservice
+	$ build -here mach_services/lib/libnetname
+	$ build -here mach_services/servers/netname
+
+	The mpts (microkernel performance test suite):
+	$ build -here mach_services/cmds/mach_perf
+
+	Note that mpts is not written as a linux application, but
+	should run directly on top of Mach by placing an entry in the
+	/mach_servers/bootstrap.conf file similar to this: 
+
+		-w mach_perf /dev/boot_device/mach_servers/mach_perf
+
+	If this entry is before that for the linux server, then linux
+	should boot after quitting mpts.
+
+	Building the microkernel itself:
+	$ build -here mach_kernel MACH_KERNEL_CONFIG=XXX
+	where "XXX" is set to the microkernel configuration you want to build:
+	PRODUCTION	: optimized microkernel for monoprocessors
+	DEBUG		: debug microkernel for monoprocessors
+	PRODUCTION+KGDB : optimized microkernel with kgdb support
+	and possibly other configurations (see mach_kernel/conf/POWERMAC/
+					    for more detail)
+
+	Please note that kernels which include debugging support switch
+	the console output to the printer port at the back of the Mac,
+	this should be hooked up to a terminal or to another machine
+	to permit use of the console (standard RS232, 9600 baud).
+
+11.	Installing a new MACH microkernel
+
+	To install a new Mach microkernel, you will need to have built
+	the microkernel and the bootstrap. Once you have done this,
+	mount MacOS's boot partition under the hfstools using hmount,
+	change the hfstools current working directory to MacOS's
+	System Folder, then make and install the new MachOS Image:
+
+	$ makeboot
+
+	If makeboot cannot find a previous MacOS Image via the
+	hfstools, it will not install the image in MacOS's System
+	Folder, but will instead give some instructions on what
+	to do next.

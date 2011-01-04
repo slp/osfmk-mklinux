@@ -1,0 +1,115 @@
+			    AIC7xxx Driver for Linux
+				 April 15, 1996
+
+Introduction
+------------------------
+The AIC7xxx SCSI driver adds support for Adaptec (http://www.adaptec.com)
+SCSI controllers and chipsets. Major portions of the driver and driver
+development are shared between both Linux and FreeBSD. Support for the
+AIC-7xxx chipsets have been in the default Linux kernel since approximately
+linux-1.1.x and fairly stable since linux-1.2.x, and are also in FreeBSD
+2.1.0 or later.
+
+  Supported cards/chipsets
+  ------------------------
+    Adaptec Cards
+    -----------------------
+    AHA-274x               
+    AHA-2842               
+    AHA-2940               
+    AHA-2940W              
+    AHA-2940U              
+    AHA-2940UW             
+    AHA-2944D              
+    AHA-2944WD
+    AHA-3940
+    AHA-3940W
+    AHA-3985
+    AHA-3985W
+
+    Motherboard Chipsets
+    -----------------------
+    AIC-777x   
+    AIC-785x
+    AIC-787x
+    AIC-788x
+
+    Bus Types
+    -----------------------
+    W - Wide SCSI, SCSI-3, 16bit bus, 68pin connector, will also support
+        SCSI-1/SCSI-2 50pin devices, transfer rates up to 20MB/s.
+    U - Ultra SCSI, transfer rates up to 40MB/s.
+    D - Differential SCSI.
+    T - Twin Channel SCSI. Up to 14 SCSI devices.
+
+    AHA-274x - EISA SCSI controller
+    AHA-284x - VLB SCSI controller
+    AHA-29xx - PCI SCSI controller
+    AHA-394x - PCI controllers with two separate SCSI controllers on-board.
+    AHA-398x - PCI RAID controllers with three separate SCSI controllers
+               on-board.
+
+    NOTE: The AHA-2920 is NOT a AIC-7xxx based controller, and is not
+          handled by this driver.
+
+  People
+  ------------------------
+    Justin T Gibbs  gibbs@freefall.FreeBSD.org     (BSD Driver Author)
+    Dan Eischen     deischen@iworks.InterWorks.org (Linux Driver Co-maintainer)
+    Dean Gehnert    deang@teleport.com             (Linux FTP/patch maintainer)
+    Jess Johnson    jester@frenzy.com              (AIC7xxx FAQ author)
+
+    Special thanks go to John Aycock (aycock@cpsc.ucalgary.ca), the original
+    author of the driver. John has since retired from the project. Thanks
+    again for all his work!
+
+  Mailing list
+  ------------------------
+    There is a mailing list available for users who want to track development
+    and converse with other users and developers. This list is for both
+    FreeBSD and Linux support of the AIC7xxx chipsets.
+
+    To subscribe to the AIC7xxx mailing list send mail to the list server,
+    with "subscribe AIC7xxx" in the body (no Subject: required):
+        To: majordomo@FreeBSD.ORG
+        ---
+        subscribe AIC7xxx
+
+    To unsubscribe from the list, send mail to the list server with:
+        To: majordomo@FreeBSD.ORG
+        ---
+        unsubscribe AIC7xxx
+
+    Send regular messages and replies to: AIC7xxx@FreeBSD.ORG
+    
+  Command line options
+  ------------------------
+    "aic7xxx=no_reset" -  Eliminate the SCSI reset delay during startup.
+        Some SCSI devices need some extra time to reset.
+
+  /proc support
+  ------------------------
+    The /proc support for the AIC7xxx can be found in the /proc/scsi/aic7xxx/
+    directory. That directory contains a file for each SCSI controller in
+    the system. Each file presents the current configuration and transfer
+    statistics (enabled with #define in aic7xxx.c) for each controller.
+
+    Thanks to Michael Neuffer for for his upper-level SCSI help, and
+    Matthew Jacob for statistics support.
+
+  FTP sites
+  ------------------------
+    ftp://ftp.teleport.com/users/deang/Linux/aic7xxx/
+      - Main Linux AIC7xxx driver release/pre-release site
+      - Experimental/development patches and bootdisks
+    ftp://ftp.dialnet.net/pub/linux/aic7xxx/
+      - US Linux mirror of Teleport site
+    ftp://ekf2.vsb.cz/pub/linux/kernel/aic7xxx/ftp.teleport.com/
+      - European Linux mirror of Teleport site
+
+
+Dean W. Gehnert
+deang@teleport.com
+
+$Revision: 3.0 $
+

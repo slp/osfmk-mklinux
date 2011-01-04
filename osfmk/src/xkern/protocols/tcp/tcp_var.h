@@ -1,0 +1,252 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ * 
+ */
+/*
+ * MkLinux
+ */
+/*
+ * tcp_var.h
+ *
+ * Derived from:
+ *
+ * Copyright (c) 1982, 1986 Regents of the University of California.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is given
+ * to the University of California at Berkeley. The name of the University
+ * may not be used to endorse or promote products derived from this
+ * software without specific prior written permission. This software
+ * is provided ``as is'' without express or implied warranty.
+ *
+ *	@(#)tcp_var.h	7.6 (Berkeley) 12/7/87
+ *
+ * Modified for x-kernel v3.2
+ * Modifications Copyright (c) 1993,1991,1990  Arizona Board of Regents
+ *
+ * $Revision: 1.1.9.1 $
+ * $Date: 1995/02/23 15:39:20 $
+ */
+
+/*
+ * xtcp configuration:  This is a half-assed attempt to make xtcp
+ * self-configure for a few varieties of 4.2 and 4.3-based unixes.
+ * If you don't have a) a 4.3bsd vax or b) a 3.x Sun (x<6), check
+ * this carefully (it's probably not right).  Please send me mail
+ * if you run into configuration problems.
+ *  - Van Jacobson (van@lbl-csam.arpa)
+ */
+
+#ifndef BSD
+#define BSD 42	/* if we're not 4.3, pretend we're 4.2 */
+#endif
+
+#if sun||BSD<43
+#define TCP_COMPAT_42	/* set if we have to interop w/4.2 systems */
+#endif
+
+#ifndef SB_MAX
+#ifdef SB_MAXCOUNT
+#define	SB_MAX SB_MAXCOUNT	/* Sun has to be a little bit different... */
+#else
+#define SB_MAX 65535		/* XXX */
+#endif /* SB_MAXCOUNT */
+#endif /* SB_MAX */
+
+/*
+ * Bill Nowicki pointed out that the page size (CLBYTES) has
+ * nothing to do with the mbuf cluster size.  So, we followed
+ * Sun's lead and made the new define MCLBYTES stand for the mbuf
+ * cluster size.  The following define makes up backwards compatible
+ * with 4.3 and 4.2.  If CLBYTES is >1024 on your machine, check
+ * this against the mbuf cluster definitions in /usr/include/sys/mbuf.h.
+ */
+#ifndef MCLBYTES
+#define	MCLBYTES CLBYTES	/* XXX */
+#endif
+
+/*
+ * The routine in_localaddr is broken in Sun's 3.4.  We redefine ours
+ * (in tcp_input.c) so we use can it but won't have a name conflict.
+ */
+#ifdef sun
+#define in_localaddr tcp_in_localaddr
+#endif
+
+/* --------------- end of xtcp config ---------------- */
+
+/*
+ * Kernel variables for tcp.
+ */
+
+struct reass {
+  struct reass *next, *prev;
+  struct tcphdr th;
+  Msg_s m;
+};
+
+/*
+ * Tcp control block, one per tcp; fields:
+ */
+struct tcpcb {
+	struct	reass *seg_next;	/* sequencing queue */
+	struct	reass *seg_prev;
+	short	t_state;		/* state of this connection */
+	short	t_timer[TCPT_NTIMERS];	/* tcp timers */
+	short	t_rxtshift;		/* log(2) of rexmt exp. backoff */
+	short	t_rxtcur;		/* current retransmit value */
+	short	t_dupacks;		/* consecutive dup acks recd */
+	u_short	t_maxseg;		/* maximum segment size */
+	char	t_force;		/* 1 if forcing out a byte */
+	u_char	t_flags;
+#define	TF_ACKNOW	0x01		/* ack peer immediately */
+#define	TF_DELACK	0x02		/* ack, but try to delay it */
+#define	TF_NODELAY	0x04		/* don't delay packets to coalesce */
+#define	TF_NOOPT	0x08		/* don't use tcp options */
+#define	TF_SENTFIN	0x10		/* have sent FIN */
+	struct	tcpiphdr *t_template;	/* skeletal packet for transmit */
+	struct	inpcb *t_inpcb;		/* back pointer to internet pcb */
+/*
+ * The following fields are used as in the protocol specification.
+ * See RFC783, Dec. 1981, page 21.
+ */
+/* send sequence variables */
+	tcp_seq	snd_una;		/* send unacknowledged */
+	tcp_seq	snd_nxt;		/* send next */
+	tcp_seq	snd_up;			/* send urgent pointer */
+	tcp_seq	snd_wl1;		/* window update seg seq number */
+	tcp_seq	snd_wl2;		/* window update seg ack number */
+	tcp_seq	iss;			/* initial send sequence number */
+	u_short	snd_wnd;		/* send window */
+/* receive sequence variables */
+	u_short	rcv_wnd;		/* receive window */
+	tcp_seq	rcv_nxt;		/* receive next */
+	tcp_seq	rcv_up;			/* receive urgent pointer */
+	tcp_seq	irs;			/* initial receive sequence number */
+/*
+ * Additional variables for this implementation.
+ */
+/* receive variables */
+	tcp_seq	rcv_adv;		/* advertised window */
+/* retransmit variables */
+	tcp_seq	snd_max;		/* highest sequence number sent
+					 * used to recognize retransmits
+					 */
+/* congestion control (for slow start, source quench, retransmit after loss) */
+	u_short	snd_cwnd;		/* congestion-controlled window */
+	u_short snd_ssthresh;		/* snd_cwnd size threshhold for
+					 * for slow start exponential to
+					 * linear switch */
+/*
+ * transmit timing stuff.
+ * srtt and rttvar are stored as fixed point; for convenience in smoothing,
+ * srtt has 3 bits to the right of the binary point, rttvar has 2.
+ * "Variance" is actually smoothed difference.
+ */
+	short	t_idle;			/* inactivity time */
+	short	t_rtt;			/* round trip time */
+	tcp_seq	t_rtseq;		/* sequence number being timed */
+	short	t_srtt;			/* smoothed round-trip time */
+	short	t_rttvar;		/* variance in round-trip time */
+	u_short max_rcvd;		/* most peer has sent into window */
+	u_short	max_sndwnd;		/* largest window peer has offered */
+/* out-of-band data */
+	char	t_oobflags;		/* have some */
+	char	t_iobc;			/* input character */
+#define	TCPOOB_HAVEDATA	0x01
+#define	TCPOOB_HADDATA	0x02
+};
+
+#define	intotcpcb(ip)	((struct tcpcb *)(ip)->inp_ppcb)
+#define	sototcpcb(so)	(intotcpcb(sotoinpcb(so)))
+
+/*
+ * TCP statistics.
+ * Many of these should be kept per connection,
+ * but that's inconvenient at the moment.
+ */
+struct	tcpstat {
+#if BSD<=43
+       int     tcps_badsum;
+       int     tcps_badoff;
+       int     tcps_hdrops;
+       int     tcps_badsegs;
+       int     tcps_unack;
+       /* 4.3+ BSD stats start here */
+#endif
+	u_long	tcps_connattempt;	/* connections initiated */
+	u_long	tcps_accepts;		/* connections accepted */
+	u_long	tcps_connects;		/* connections established */
+	u_long	tcps_drops;		/* connections dropped */
+	u_long	tcps_conndrops;		/* embryonic connections dropped */
+	u_long	tcps_closed;		/* conn. closed (includes drops) */
+	u_long	tcps_segstimed;		/* segs where we tried to get rtt */
+	u_long	tcps_rttupdated;	/* times we succeeded */
+	u_long	tcps_delack;		/* delayed acks sent */
+	u_long	tcps_timeoutdrop;	/* conn. dropped in rxmt timeout */
+	u_long	tcps_rexmttimeo;	/* retransmit timeouts */
+	u_long	tcps_persisttimeo;	/* persist timeouts */
+	u_long	tcps_keeptimeo;		/* keepalive timeouts */
+	u_long	tcps_keepprobe;		/* keepalive probes sent */
+	u_long	tcps_keepdrops;		/* connections dropped in keepalive */
+
+	u_long	tcps_sndtotal;		/* total packets sent */
+	u_long	tcps_sndpack;		/* data packets sent */
+	u_long	tcps_sndbyte;		/* data bytes sent */
+	u_long	tcps_sndrexmitpack;	/* data packets retransmitted */
+	u_long	tcps_sndrexmitbyte;	/* data bytes retransmitted */
+	u_long	tcps_sndacks;		/* ack-only packets sent */
+	u_long	tcps_sndprobe;		/* window probes sent */
+	u_long	tcps_sndurg;		/* packets sent with URG only */
+	u_long	tcps_sndwinup;		/* window update-only packets sent */
+	u_long	tcps_sndctrl;		/* control (SYN|FIN|RST) packets sent */
+
+	u_long	tcps_rcvtotal;		/* total packets received */
+	u_long	tcps_rcvpack;		/* packets received in sequence */
+	u_long	tcps_rcvbyte;		/* bytes received in sequence */
+	u_long	tcps_rcvbadsum;		/* packets received with ccksum errs */
+	u_long	tcps_rcvbadoff;		/* packets received with bad offset */
+	u_long	tcps_rcvshort;		/* packets received too short */
+	u_long	tcps_rcvduppack;	/* duplicate-only packets received */
+	u_long	tcps_rcvdupbyte;	/* duplicate-only bytes received */
+	u_long	tcps_rcvpartduppack;	/* packets with some duplicate data */
+	u_long	tcps_rcvpartdupbyte;	/* dup. bytes in part-dup. packets */
+	u_long	tcps_rcvoopack;		/* out-of-order packets received */
+	u_long	tcps_rcvoobyte;		/* out-of-order bytes received */
+	u_long	tcps_rcvpackafterwin;	/* packets with data after window */
+	u_long	tcps_rcvbyteafterwin;	/* bytes rcvd after window */
+	u_long	tcps_rcvafterclose;	/* packets rcvd after "close" */
+	u_long	tcps_rcvwinprobe;	/* rcvd window probe packets */
+	u_long	tcps_rcvdupack;		/* rcvd duplicate acks */
+	u_long	tcps_rcvacktoomuch;	/* rcvd acks for unsent data */
+	u_long	tcps_rcvackpack;	/* rcvd ack packets */
+	u_long	tcps_rcvackbyte;	/* bytes acked by rcvd acks */
+	u_long	tcps_rcvwinupd;		/* rcvd window update packets */
+};
+
+
+struct	tcpiphdr *tcp_template( struct tcpcb * );
+struct	tcpcb *tcp_destroy( struct tcpcb * );
+struct  tcpcb *tcp_drop( struct tcpcb *, int );
+struct	tcpcb *tcp_timers( struct tcpcb *, int );
+struct  tcpcb *tcp_disconnect( struct tcpcb * );
+struct  tcpcb *tcp_usrclosed( struct tcpcb * );
+

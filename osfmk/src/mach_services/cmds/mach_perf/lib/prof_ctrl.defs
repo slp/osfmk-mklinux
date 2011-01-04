@@ -1,0 +1,79 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+
+subsystem prof_ctrl 2000;
+
+import "prof_ctrl_types.h";
+
+ServerPrefix do_;
+UserPrefix call_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+/*
+ * Reset profiling buffers and counters
+ */
+
+routine prof_reset(
+	server: 	mach_port_t);
+
+/*
+ * Save profiling samples
+ */
+
+routine prof_save(
+	server: 	mach_port_t);
+
+/*
+ * Drop profiling samples
+ */
+
+routine prof_drop(
+	server: 	mach_port_t);
+
+
+/*
+ * Interfaces used to print profile output.
+ *
+ * When running under Ux, mach_perf uses the mprof command.
+ * This cannot be done in a mach_forked() task (unknown to the Ux server).
+ * Instead a thread in the master task is dedicated to it.
+ * These interfaces are used to communicate with this thread and
+ * start the mprof command.
+ */
+
+type buf_t = array[*:1024] of char	/* Keep in synch with prof_ctrl.defs */
+	ctype: buf_t;
+
+routine start_prof_cmd(
+	server: 	mach_port_t;
+	cmd: 		buf_t);
+
+routine write_to_prof_cmd(
+	server: 	mach_port_t;
+	cmd: 		buf_t);
+
+routine stop_prof_cmd(
+	server: 	mach_port_t);

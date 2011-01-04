@@ -1,0 +1,122 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# 
+# MkLinux
+
+@;
+
+name=xkwd/wd0
+	trace=TR_ERRORS
+;
+
+name=eth protocols=xkwd/wd0
+	trace=TR_ERRORS
+;
+
+name=arp 	protocols=eth			
+	trace=TR_ERRORS
+;
+
+name=vnet	protocols=eth,arp
+	trace=TR_ERRORS
+;
+
+name=ip 	protocols=vnet
+	trace=TR_ERRORS
+;
+
+name=icmp 	protocols=ip			
+	trace=TR_ERRORS
+;
+
+
+name=vmux	protocols=vnet,ip
+	trace=TR_ERRORS
+;
+
+
+name=blast 	protocols=vmux
+	trace=TR_ERRORS
+;
+
+
+name=vsize	protocols=vmux,blast
+	trace=TR_ERRORS
+;
+
+
+name=bidctl 	protocols=vmux
+ 	trace=TR_ERRORS
+;
+
+name=bid 	protocols=vsize,bidctl
+ 	trace=TR_ERRORS
+;
+
+name=chan	protocols=bid,bidctl
+	trace=TR_ERRORS
+;
+
+
+#name=xrpctest		protocols=chan;
+#name=sunrpctest	protocols=sunrpc;
+#name=tcptest		protocols=tcp;
+#name=udptest		protocols=udp;
+#name=rarptest 		protocols=arp;
+#name=iproutetest;
+#name=porttest		protocols=udp;
+#name=enabletest	protocols=ip;
+
+name=alloctest/0	protocols=chan alloc=ct_res;
+name=alloctest/1	protocols=chan;
+name=alloctest/2	protocols=chan;
+
+name=allocmon;
+
+@;
+
+#
+# Non-protocol trace variables
+#
+
+# name=event	trace=TR_ERRORS;
+name=protocol	trace=TR_ERRORS;
+name=prottest	trace=TR_ERRORS;
+name=ptbl	trace=TR_ERRORS;
+name=init	trace=TR_ERRORS;
+
+romfile = ../../../../../src/mach_kernel/uk_xkern/gen/rom;
+
+romopt chantest	save_interval	20;
+romopt allocmon interval	10;
+
+romopt alloc limit	 default_interior	1000000;
+romopt alloc blocks	 default_interior	250 1750 4090;
+
+romopt alloc name 	 ct_res 315     guaranteed default_interior;
+romopt alloc input_msgs  ct_res 17000	30;	
+romopt alloc contig	 ct_res 200	100;	# message stack overflow
+
+romopt xkwd  vci	 ct_res 10 4;
+
+romopt alloctest/0       mark	^;
+romopt alloctest/1       mark	!;
+romopt alloctest/2       mark	+;

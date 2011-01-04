@@ -1,0 +1,73 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+#
+# MkLinux
+
+#
+#  This special makefile marks the top of the source tree.  Several
+#  builtin make variables are defined based upon the location of this
+#  file and the subdirectory within this tree where make was invoked.
+#
+# Veritas/Vista uses covcc as the front end to the standard compiler
+# to provide Branch Flow Analysis.  This switch is set by defining the
+# VISTA flags.
+#
+
+.if defined(VISTA)
+VISTA_FLAGS?=-@xCSthm -o cov3.o
+.if defined(VISTA_LIST)
+BASE_CC?=listgen ${VISTA_FLAGS} ${VISTA_ENV} ${VISTA_ARGS} -- -B${_GCC_EXEC_PREFIX_} ${GLINE}
+HOST_CC?=listgen ${VISTA_FLAGS} ${VISTA_ENV} ${VISTA_ARGS} --
+.else
+BASE_CC?=covcc ${VISTA_FLAGS} ${VISTA_ENV} ${VISTA_ARGS} -z ${_GCC_EXEC_PREFIX_}gcc -- -B${_GCC_EXEC_PREFIX_} ${GLINE}
+HOST_CC?=covcc ${VISTA_FLAGS} ${VISTA_ENV} ${VISTA_ARGS} -z cc --
+.endif
+.endif
+
+
+.MAKEFLAGS: -r
+
+.if !empty(.TARGETS:Msetup_*)
+
+CCTYPE=host
+CENV+=-D_BLD -I. -I${EXPORTBASE}/usr/include
+MDENV+=-I${EXPORTBASE}/usr/include -I/usr/include
+TOOLS=${SOURCEBASE:H}/tools/${target_machine}/hostbin
+NO_STARTFILES=
+
+.endif
+
+.if defined(OBJECTDIR)
+MAKEOBJDIR=${OBJECTDIR}
+.endif
+
+.if defined(SOURCEDIR)
+MAKESRCDIRPATH=${SOURCEDIR}
+.endif
+
+.if defined(CROSS_MACHINE)
+.if !make(setup_all)
+MACHINE=${CROSS_MACHINE}
+CENV+=-Ui386 -U__i386 -U__i386__
+MIGENV+=-Ui386 -U__i386 -U__i386__ -D${CROSS_MACHINE}
+LIBDIRS+=${${CROSS_MACHINE}_${OBJECT_FORMAT}_LIBDIRS}
+.endif
+.endif

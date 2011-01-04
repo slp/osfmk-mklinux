@@ -1,0 +1,59 @@
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+
+machine		"POWERMAC"
+cpu		"ppc"
+pseudo-device	cpus	1
+pseudo-device	asc	2
+pseudo-device	scsi	4
+pseudo-device   scsiinfo 1
+pseudo-device	lan	1
+pseudo-device	scc	1
+pseudo-device   constty 4
+pseudo-device	vc	1
+pseudo-device	cuda	1
+pseudo-device	pmu	1
+pseudo-device	adb	1
+pseudo-device	mouse	1
+pseudo-device	mesh	1
+pseudo-device	physmem	1
+pseudo-device   consfeed 0
+pseudo-device	awacs	1
+pseudo-device	fd	0
+pseudo-device	nvram	1
+pseudo-device	pram	1
+pseudo-device	tulip	1
+pseudo-device	bmac	1
+pseudo-device	pci	1
+
+# ata- 2 buses, 2 devices each bus
+pseudo-device	wd	4
+
+options		CHAINED_IOS
+options		SCSI_SEQUENTIAL_DISKS
+
+# Disabled by default, since mklinux does not need this
+# unless running multiserver - the atalk stack at time of
+# writing inserts a null filter!
+#options		NET_FILTER_COMPILER
+
+# Turn on the serial console by uncommenting the this:
+#options		SERIAL_CONSOLE_DEFAULT

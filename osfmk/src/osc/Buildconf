@@ -1,0 +1,160 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+
+on i386  target <undef> replace setenv ode_target i386
+on ppc   target <undef> replace setenv ode_target powermac
+on i860  target <undef> replace setenv ode_target i860
+on hp_pa target <undef> replace setenv ode_target hp_pa
+
+setenv compiler_name gcc
+setenv GCC_LATEST 2_7_1
+on_os linux replace setenv GCC_LATEST 2_7_2_1
+
+on i386 on_os linux target i386 setenv CARGS -D__NO_UNDERSCORES__
+on_os linux setenv EXPORT_USING_TAR 1
+
+# Default target is self-hosted
+
+on mips setenv MACHINE mips
+on mips setenv TARGET_MACHINE PMAX
+on mips setenv target_machine pmax 
+on mmax setenv MACHINE mmax
+on mmax setenv TARGET_MACHINE MMAX
+on mmax setenv target_machine mmax
+on alpha setenv MACHINE alpha 
+on alpha setenv TARGET_MACHINE ALPHA
+on alpha setenv target_machine alpha
+on alpha setenv ALPHA_OBJECT_FORMAT COFF
+on i386 setenv MACHINE i386
+on i386 setenv TARGET_MACHINE AT386
+on i386 setenv target_machine at386
+on hp_pa setenv MACHINE hp_pa
+on hp_pa setenv TARGET_MACHINE HP700
+on hp_pa setenv target_machine hp700
+on hp_pa setenv OBJECT_FORMAT SOM
+on hp_pa on_os linux replace setenv OBJECT_FORMAT ELF
+on ppc setenv MACHINE ppc
+on ppc setenv TARGET_MACHINE POWERMAC
+on ppc setenv target_machine powermac
+
+# Remember the host machine, we might change our target
+setenv HOST_MACHINE ${MACHINE}
+setenv PURE_MACH 1
+
+#
+# SQT specific
+#
+on i386 target sqt replace setenv TARGET_MACHINE SQT
+on i386 target sqt replace setenv target_machine sqt
+
+# For 860 builds, remove comment leader in following lines
+# Also check the Buildconf.exp file
+#
+target i860 replace setenv MACHINE i860
+target i860 replace setenv CROSS_MACHINE i860
+target i860 replace setenv target_machine intel860
+target i860 replace setenv TARGET_MACHINE INTEL860
+target i860 replace setenv INTEL860_OBJECT_FORMAT COFF
+target i860 replace setenv compiler_name icc
+target i860 replace setenv MACHO_CC_EXEC_PREFIX "${tools_base}/coff/icc-bin/"
+target i860 replace setenv COFF_CC_EXEC_PREFIX "${tools_base}/coff/icc-bin/"
+target i860 replace setenv COFF_NM_EXEC_PREFIX "${tools_base}/coff/"
+target i860 replace setenv HOST_CC "${tools_base}/macho/gcc"
+target i860 replace setenv MIGCC "${tools_base}/macho/gcc"
+target i860 replace setenv i860_COFF_LIBFLAGS "-L${sandbox_base}/export/intel860/usr/ccs/lib -L${tools_base}/coff/icc-lib"
+target i860 replace setenv PATH "${tools_base}/coff/icc-bin:${PATH}"
+
+#
+# PowerMac specific
+#
+target powermac replace setenv MACHINE ppc
+target powermac replace setenv target_machine powermac
+target powermac replace setenv TARGET_MACHINE POWERMAC
+target powermac on i386 replace setenv CROSS_MACHINE ppc
+
+target powermac setenv _POWERMAC_ELF_CFLAGS_ "-fsigned-char -fno-builtin"
+## end of PowerMac build stuff
+
+# use the tools from the shared sandbox by default, using target/host path
+
+tools_base ${sandbox_base}/link/tools/${MACHINE}/${HOST_MACHINE}_osf1
+on_os linux replace tools_base ${sandbox_base}/link/tools/${MACHINE}/${HOST_MACHINE}_linux
+
+replace setenv OBJECTDIR ../obj/${target_machine}
+build_list /afs/ri/project/kernel/build_list
+build_makeflags -r
+setenv PROJECT_NAME OSC
+setenv project_name osc
+setenv RULES_MK osf.rules.mk
+object_base ${sandbox_base}/obj/${target_machine}
+source_base ${sandbox_base}/src
+export_base ${sandbox_base}/export/${target_machine}
+setenv SOURCEBASE ${source_base}
+setenv EXPORTBASE ${export_base}
+# Set the availability of shared libraries for a given
+# object format.
+replace setenv MACHO_SHARED_LIBRARIES ""
+replace setenv ELF_SHARED_LIBRARIES ""
+#
+replace setenv ELF_CC_EXEC_PREFIX "${tools_base}/elf/"
+replace setenv MACHO_CC_EXEC_PREFIX "${tools_base}/macho/"
+replace setenv COFF_CC_EXEC_PREFIX "${tools_base}/coff/"
+replace setenv A_OUT_CC_EXEC_PREFIX "${tools_base}/a_out/"
+replace setenv SOM_CC_EXEC_PREFIX "${tools_base}/som/"
+replace setenv ARCHIVE_FORMAT OSFARCH
+replace setenv TARGET_EXEC_PREFIX ${tools_base}/hostbin/
+replace setenv SITE OSF
+replace setenv OWNER bin
+replace setenv GROUP bin
+replace setenv PROJECT_NAME OSC
+replace setenv project_name osc
+replace setenv RULES_MK osf.rules.mk
+replace setenv MAKESYSPATH ${source_base}/makedefs
+replace setenv SOURCEDIR ""
+replace setenv BACKED_SOURCEDIR ${source_base}
+replace setenv INCDIRS "-I${export_base}/include -I${export_base}/include/sa_mach"
+replace setenv LIBDIRS -L${export_base}/lib
+replace setenv MACH3_INCDIRS ${INCDIRS}
+replace setenv MACH3_LIBDIRS ${LIBDIRS}
+
+replace setenv MIGCOM ${tools_base}/hostbin/migcom
+replace setenv DEF_ARFLAGS cr
+replace setenv MACH3_ROOT_SERVERS_IDIR  /mach_servers/
+replace setenv MACH3_SERVERS_IDIR       /sbin/
+replace setenv MACH3_MIG_IDIR           /bin/
+replace setenv MACH3_CMD_IDIR           /bin/
+replace setenv MACH3_LIBRARY_IDIR       /lib/
+replace setenv MACH3_INCLUDE_IDIR       /include/
+
+#
+# Native builds on linux use the local compiler
+#
+
+on i386 on_os linux target i386     replace setenv ELF_CC_EXEC_PREFIX ""
+on ppc  on_os linux target powermac replace setenv ELF_CC_EXEC_PREFIX ""
+on hp_pa  on_os linux target hp_pa replace setenv ELF_CC_EXEC_PREFIX ""
+
+on_os linux replace setenv MIGCC gcc
+on_os linux replace setenv CPP "cc -E"
+on_os linux replace setenv _ELF_PIC_ ""
+
+

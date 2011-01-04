@@ -1,0 +1,67 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+
+/*
+ *	File:		clock_types.defs
+ *	Purpose:
+ *		Clock kernel interface type declarations
+ */
+
+#ifndef	_MACH_CLOCK_TYPES_DEFS_
+#define _MACH_CLOCK_TYPES_DEFS_
+
+#include <mach/std_types.defs>
+
+type clock_t = mach_port_t
+		ctype: mach_port_t
+#if	KERNEL_SERVER
+		intran: clock_t convert_port_to_clock(mach_port_t)
+		outtran: mach_port_t convert_clock_to_port(clock_t)
+#endif	/* KERNEL_SERVER */
+		;
+
+type clock_ctrl_t = mach_port_t
+		ctype: mach_port_t
+#if	KERNEL_SERVER
+		intran: clock_t convert_port_to_clock_ctrl(mach_port_t)
+		outtran: mach_port_t convert_clock_ctrl_to_port(clock_t)
+#endif	/* KERNEL_SERVER */
+		;
+
+type clock_flavor_t = int;
+type clock_attr_t = array[*:1] of int;
+type tvalspec_t	= struct[2] of int;
+type time_t = int;
+type sleep_type_t = int;
+type alarm_type_t = int;
+type clock_res_t = int;
+type clock_id_t = int;
+
+#if	KERNEL_SERVER
+simport <kern/clock.h>;		/* for clock_t */
+#endif	/* KERNEL_SERVER */
+
+import <mach/mach_types.h>;
+
+#endif	/* _MACH_CLOCK_TYPES_DEFS_ */

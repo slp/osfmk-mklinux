@@ -1,0 +1,63 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# 
+# MkLinux
+# 
+###########################################################################
+#
+# conf/config.net
+#
+# This file enables the build of the in-kernel version of the 
+# machine-independent network subsystem (based on the x-kernel
+# from University of Arizona). Once this subsystem is set up, 
+# it can be used by DIPC (add the DIPC_XKERN option to your 
+# configuration file) and/or FLIPC (FLIPC option) and/or 
+# user-space clients through the MACH device interface (default).
+#
+# The organization of the protocol graph is defined in 
+# 	src/mach_kernel/uk_xkern/gen/graph.comp
+#
+# The use of remote GDB for kernel debugging is highly recommended.
+# (in your configuration file, include "AT386/config.kgdb" rather 
+# than "AT386/config.debug").
+# 
+###########################################################################
+
+#
+# basic switch
+#
+options		XKMACHKERNEL
+makevariables   XKMACHKERNEL=
+
+#
+# Options:
+# The PROXY option allows to seamlessly extend a protocol graph
+# across protection boundaries.
+#
+options         XK_PROXY
+makevariables   XK_PROXY=
+
+#
+# Options:
+# The XK_INET option allows to include a standard TCP/IP protocol
+# suite as part of the protocol library.
+#
+options         XK_INET

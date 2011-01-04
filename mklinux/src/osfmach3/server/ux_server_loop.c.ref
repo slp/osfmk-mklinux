@@ -1,0 +1,490 @@
+/*
+ * Copyright (c) 1991-1998 Open Software Foundation, Inc. 
+ *  
+ * 
+ */
+/*
+ * MkLinux
+ */
+
+/*
+ * Server thread utilities and main loop.
+ */
+
+#include <linux/autoconf.h>
+
+#include <cthreads.h>
+
+#include <mach/mach_traps.h>
+#include <mach/mig_errors.h>
+#include <mach/policy.h>
+#include <mach/mach_host.h>
+#include <mach/mach_interface.h>
+#include <mach/mach_port.h>
+#include <mach/exc_server.h>
+#include <mach/bootstrap_server.h>
+
+#include <osfmach3/mach_init.h>
+#include <osfmach3/mach3_debug.h>
+#include <osfmach3/macro_help.h>
+#include <osfmach3/serv_port.h>
+#include <osfmach3/uniproc.h>
+#include <osfmach3/server_thread.h>
+#include <osfmach3/setjmp.h>
+#include <osfmach3/assert.h>
+
+#include "serv_callback_user.h"
+#include "serv_callback_server.h"
+
+#include <asm/page.h>
+#include <linux/kernel.h>
+#include <linux/sched.h>
+#include <linux/malloc.h>
+#include <linux/mm.h>
+
+#if	CONFIG_OSFMACH3_DEBUG
+#define DO_UX_LOOP_DEBUG	1
+#endif	/* CONFIG_OSFMACH3_DEBUG */
+
+#if	DO_UX_LOOP_DEBUG
+int ux_loop_debug;
+#define UX_LOOP_DEBUG(args)	\
+MACRO_BEGIN			\
+	if (ux_loop_debug)	\
+		printk args;	\
+MACRO_END
+#else	/* DO_UX_LOOP_DEBUG */
+#define UX_LOOP_DEBUG(args)
+#endif	/* DO_UX_LOOP_DEBUG */
+
+extern mach_port_t mach_trap_port;
+
+mach_port_t	ux_server_loop_pset;	/* ux server loop port set */
+
+int		ux_server_thread_count = 0;
+int		ux_surplus_empty_activations = 0;
+
+extern mach_port_t ux_mach_exception_port;
+
+extern boolean_t	in_kernel;
+extern boolean_t	use_activations;
+
+struct server_thread_priv_data priv_data_for_first_activation;
+
+void
+new_thread_activation(
+	mach_port_t	port)
+{
+	mach_port_t	activation;
+	kern_return_t	kr;
+	unsigned long	stack_size;
+	cthread_t	new_cthread;
+	vm_offset_t	sp;
+	struct server_thread_priv_data *priv_datap;
+	static boolean_t first_call = TRUE;
+
+	new_cthread = cthread_create_handle(&sp);
+	if (new_cthread == NULL || sp == (vm_offset_t) 0) {
+		panic("new_thread_activation: cthread_create_handle failed\n");
+	}
+
+	if (first_call) {
+		priv_datap = &priv_data_for_first_activation;
+		first_call = FALSE;
+	} else {
+		priv_datap = (struct server_thread_priv_data *)
+			kmalloc(sizeof (*priv_datap), GFP_KERNEL);
+		if (priv_datap == NULL) {
+			panic("new_thread_activation: kmalloc failed\n");
+		}
+	}
+	/*
+	 * We can't safely use the new activation until the
+	 * cthread has been wired to it: see below.
+	 */
+	server_thread_set_priv_data(new_cthread, priv_datap);
+	priv_datap->activation_ready = FALSE;
+
+	/*
+	 * NB:  the computation of stack_size assumes that cthread_stack_size
+	 * is a power of 2, and that the stack in question is of this size and
+	 * is naturally-aligned.
+	 */
+#ifdef	STACK_GROWTH_UP
+	stack_size = cthread_stack_size - (sp & ~(cthread_stack_size - 1));
+#else	/* STACK_GROWTH_UP */
+	stack_size = sp & ~(cthread_stack_size - 1);
+#endif	/* STACK_GROWTH_UP */
+	kr = thread_activation_create(mach_task_self(),
+				      port, sp, stack_size, &activation);
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(1, kr, ("thread_activation_create, "
+				    "sp=0x%x, stack_size=0x%lx\n",
+				    sp, stack_size));
+		panic("new_thread_activation: thread_activation_create failed");
+	}
+
+	cthread_wire_other(new_cthread, activation);
+	priv_datap->activation_ready = TRUE;
+}
+
+void
+grab_one_activation(void)
+{
+	if (ux_surplus_empty_activations > 0) {
+		ux_surplus_empty_activations--;
+	} else {
+		(void) new_thread_activation(ux_server_loop_pset);
+	}
+}
+
+void
+release_one_activation(void)
+{
+	ux_surplus_empty_activations++;
+}
+
+void
+ux_server_add_port(
+	mach_port_t	trap_port)
+{
+	kern_return_t	kr;
+
+	if (use_activations) {
+		grab_one_activation();
+	}
+	kr = mach_port_move_member(mach_task_self(),
+				   trap_port,
+				   ux_server_loop_pset);
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(1, kr, ("ux_server_add_port: "
+				    "mach_port_move_member(%x, %x)",
+				    trap_port, ux_server_loop_pset));
+		panic("ux_server_loop_add: can't add trap port to pset");
+	}
+}
+
+void
+ux_server_destroy_port(
+	mach_port_t	trap_port)
+{
+	kern_return_t	kr;
+
+	kr = serv_port_destroy(trap_port);
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(1, kr, ("ux_server_destroy_port: "
+				    "serv_port_destroy(%x)",
+				    trap_port));
+		printk("ux_server_destroy_port: can't destroy trap port "
+		       "(kr=0x%x)\n", kr);
+	}
+	if (use_activations) {
+		release_one_activation();
+	}
+}
+
+/*
+ * Implementation of the no_op server-server IPC invoked above.  The
+ * code should be self-explanatory :-)
+ */
+kern_return_t
+serv_callback_no_op(
+	mach_port_t port)
+{
+	panic("serv_callback_no_op called!!");
+	return KERN_SUCCESS;
+}
+
+/*
+ * Implementation (temporary) of bootstrap_ports().
+ * There is no security around this at the moment, it will give
+ * out the ports to anyone who can send the request.
+ */
+kern_return_t
+do_bootstrap_ports(mach_port_t bootstrap,
+		   mach_port_t *hostp,
+		   mach_port_t *devicep,
+		   mach_port_t *root_ledger_wiredp,
+		   mach_port_t *root_ledger_pagedp,
+		   mach_port_t *security_portp)
+{
+	extern mach_port_t privileged_host_port;
+	extern mach_port_t device_server_port;
+	extern mach_port_t root_ledger_wired;
+	extern mach_port_t root_ledger_paged;
+	extern mach_port_t security_port;
+
+	*hostp = privileged_host_port;
+	*devicep = device_server_port;
+	*root_ledger_wiredp = root_ledger_wired;
+	*root_ledger_pagedp = root_ledger_paged;
+	*security_portp = security_port;
+	return KERN_SUCCESS;
+}
+
+char bootstrap_args[] = "osf1_server\0-2\0-s";
+int  bootstrap_args_size = sizeof(bootstrap_args);
+
+kern_return_t
+do_bootstrap_arguments(mach_port_t bootstrap,
+		       task_port_t task_port,
+		       vm_offset_t *args,
+		       mach_msg_type_number_t *args_count)
+{
+	kern_return_t kr;
+
+	*args_count = PAGE_ALIGN(bootstrap_args_size);
+	kr = vm_allocate(mach_task_self(), args, *args_count, TRUE);
+	if (kr != KERN_SUCCESS)
+		return kr;
+	memcpy((char *)(*args), (char *)bootstrap_args, bootstrap_args_size);
+	return KERN_SUCCESS;
+}
+
+char bootstrap_env[] = "";
+int  bootstrap_env_size = sizeof(bootstrap_env);
+
+kern_return_t
+do_bootstrap_environment(mach_port_t bootstrap,
+			 task_port_t task_port,
+			 vm_offset_t *env,
+			 mach_msg_type_number_t *env_count)
+{
+	kern_return_t kr;
+
+	*env_count = PAGE_ALIGN(bootstrap_env_size);
+	kr = vm_allocate(mach_task_self(), env, *env_count, TRUE);
+	if (kr != KERN_SUCCESS)
+		return kr;
+	memcpy((char *)(*env), (char *)bootstrap_env, bootstrap_env_size);
+	return KERN_SUCCESS;
+}
+
+kern_return_t
+do_bootstrap_completed(mach_port_t bootstrap,
+		       task_port_t task_port)
+{
+    /* Need do nothing; only the bootstrap task cares when a
+       server signals bootstrap_completed.  */
+    return KERN_SUCCESS;
+}
+
+/*
+ * Reactivate the server thread serving the "thread" structure.
+ */
+void
+ux_server_thread_reincarnate(struct task_struct *task)
+{
+	panic("??");
+}
+
+mach_port_t
+ux_server_get_thread(struct task_struct *task)
+{
+	mach_port_t		trap_port;
+
+	trap_port = task->osfmach3.thread->mach_trap_port;
+	serv_port_rename(trap_port, (void *) task);
+	if (! use_activations) {
+		ux_server_thread_reincarnate(task);
+	}
+	return trap_port;
+}
+
+
+/*
+ * Main loop of UX server.
+ */
+/*ARGSUSED*/
+void *
+ux_server_loop(
+	void	*arg)
+{
+	struct server_thread_priv_data	priv_data;
+	osfmach3_jmp_buf		jmp_buf;
+	kern_return_t			kr;
+	mach_port_t			receive_port;
+#define MSG_BUFFER_SIZE 8192
+	union request_msg {
+		mach_msg_header_t	hdr;
+		mig_reply_error_t	death_pill;
+		char			space[MSG_BUFFER_SIZE];
+	} *msg_buffer_1, *msg_buffer_2;
+
+	mach_msg_header_t	*request;
+	mig_reply_error_t	*reply;
+	mach_msg_header_t	*tmp;
+
+	cthread_set_name(cthread_self(), "ux server loop");
+	server_thread_set_priv_data(cthread_self(), &priv_data);
+	priv_data.jmp_buf = &jmp_buf;
+
+	uniproc_enter();
+	ux_server_thread_count++;
+
+
+	receive_port = ux_server_loop_pset;
+
+	/* Allocate message buffers.  We don't allocate them on the stack
+	 * because they are big and we want to be able to wire small stacks
+	 * when running in kernel mode.
+	 * We use vm_allocate() instead of malloc() here because "idle"
+	 * threads are not supposed to block.
+	 */
+	kr = vm_allocate(mach_task_self(), (vm_address_t *) &msg_buffer_1,
+			 2 * sizeof (union request_msg), TRUE);
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(0, kr, ("ux_server_loop: vm_allocate"));
+		panic("ux_server_loop alloc");
+	}
+
+	msg_buffer_2 = msg_buffer_1 + 1;
+
+	request = &msg_buffer_1->hdr;
+	reply = &msg_buffer_2->death_pill;
+
+	/* recycle point: we come back here after an exit() */
+	if (osfmach3_setjmp(priv_data.jmp_buf)) {
+		cthread_set_name(cthread_self(), "ux_server_loop");
+	}
+
+	do {
+
+		uniproc_exit();
+		kr = mach_msg(request, MACH_RCV_MSG,
+			      0, sizeof *msg_buffer_1,
+			      receive_port,
+			      MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+		uniproc_enter();
+
+		if (kr != MACH_MSG_SUCCESS) {
+			MACH3_DEBUG(1, kr, ("ux_server_loop: mach_msg"));
+			panic("ux_server_loop: receive");
+		}
+		while (kr == MACH_MSG_SUCCESS) {
+			priv_data.reply_port = request->msgh_remote_port;
+
+			if (exc_server(request, &reply->Head)) {}
+			else if (serv_callback_server(request, &reply->Head)){}
+			else if (bootstrap_server(request, &reply->Head)) {}
+			else if (request->msgh_id == 999999) {}
+			/*
+			 * The above test looks for the kind of
+			 * message that a server sends to its
+			 * bootstrap port to get the
+			 * privileged ports. It can come from a
+			 * second server, so ignore it, and let
+			 * this server try another way of
+			 * getting its ports...
+			 * (see get_config_info() in bsd/mach_init.c)
+			 */
+			else {
+				printk("ux_server_loop: Warning -- Invalid message (id = %d) not deallocated.\n", request->msgh_id);
+			} 
+
+			if (reply->Head.msgh_remote_port == MACH_PORT_NULL) {
+				/* no reply port, just get another request */
+				break;
+			} 
+			if (!(reply->Head.msgh_bits & MACH_MSGH_BITS_COMPLEX)
+			    && (reply->RetCode == MIG_NO_REPLY)) {
+				/* deallocate reply port right */
+				(void) mach_port_deallocate(mach_task_self(),
+						reply->Head.msgh_remote_port);
+				break;
+			}
+
+			/* Send reply to request and receive another */
+			uniproc_exit();
+			kr = mach_msg(&reply->Head,
+				      MACH_SEND_MSG | MACH_RCV_MSG,
+				      reply->Head.msgh_size,
+				      sizeof *msg_buffer_2,
+				      receive_port,
+				      MACH_MSG_TIMEOUT_NONE,
+				      MACH_PORT_NULL);
+			uniproc_enter();
+
+			if (kr != MACH_MSG_SUCCESS) {
+				if (kr == MACH_SEND_INVALID_DEST) {
+					/* deallocate reply port right */
+					/* XXX should destroy reply msg */
+					(void) mach_port_deallocate(
+						mach_task_self(),
+						reply->Head.msgh_remote_port);
+				} else {
+					MACH3_DEBUG(0, kr, ("mach_msg"));
+					panic("ux_server_loop: rpc");
+				}
+			}
+
+			tmp = request;
+			request = (mach_msg_header_t *)reply;
+			reply = (mig_reply_error_t *) tmp;
+		}
+
+	} while (1);
+
+	ux_server_thread_count--;
+
+	kr = vm_deallocate(mach_task_self(), (vm_address_t) msg_buffer_1,
+			   2 * sizeof (union request_msg));
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(1, kr, ("ux_server_loop: vm_deallocate"));
+	}
+
+	uniproc_exit();
+
+	cthread_detach(cthread_self());
+	cthread_exit((void *) 0);
+	/*NOTREACHED*/
+
+	return ((void *)0);	/* exit */
+}
+
+void
+launch_new_ux_server_loop(
+	struct task_struct *new_task)
+{
+	if (use_activations) {
+		/*
+		 * We don't use ux_server_loop in this case, but we make
+		 * sure that there are enough empty activations ready in
+		 * ux_server_add_port().
+		 */
+	} else {
+		if (ux_server_thread_count < nr_tasks) {
+			server_thread_start(ux_server_loop, (void *) 0);
+		}
+	}
+}
+
+void
+ux_server_init(void)
+{
+	kern_return_t		kr;
+	static int		first_time = 1;
+
+	if (first_time)
+		first_time = 0;
+	else
+		panic("ux_server_init called again");
+
+	/*
+	 * Allocate the ux server loop port set.
+	 */
+	kr = mach_port_allocate(mach_task_self(),
+				MACH_PORT_RIGHT_PORT_SET,
+				&ux_server_loop_pset);
+	if (kr != KERN_SUCCESS) {
+		MACH3_DEBUG(0, kr,
+			    ("ux_server_init: mach_port_allocate(pset)"));
+		panic("ux_server_init: can't allocate port set");
+	}
+
+	/*
+	 * Start a ux_server_loop thread to handle the initial "fork"
+	 * syscall.
+	 */
+	launch_new_ux_server_loop(&init_task);
+}

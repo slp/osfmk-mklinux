@@ -1,0 +1,217 @@
+# 
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# 
+# MkLinux
+# 
+#  x-kernel v3.2
+# 
+#  Copyright (c) 1993,1991,1990  Arizona Board of Regents
+# 
+#  This file describes absolute protocol id's and gives relative
+#  protocol numbers for those protocols which use them
+# 
+
+eth	1    
+{
+	bootp   x0800
+	arp	x0806
+	rarp	x8035
+	#
+	# ethernet types x3*** are not reserved
+	#
+	ip	x3800
+
+	ethtest	x3000
+	blast	x3001
+	vsize	x3002
+	chan	x3003
+	blasttest	x3004
+	bid	x3005
+	bidctl	x3006
+	mship   x3007
+	heartbeat x3008
+}
+ip	2    
+{
+	icmp	1
+	tcp	6
+	udp	17
+	#
+	# IP protocol numbers n, 91 < n < 255, are unassigned
+	#
+	iptest	100	
+	blast	101
+	chan	102
+	vsize	203
+	bid	204
+	bidctl	205
+	#
+	# Temporary -- make tcp different from the real tcp for
+	# testing
+	#tcp	201
+	mship   210
+	heartbeat 220
+	censustaker 221
+	membership 222
+	sequencer  223
+	panning  224
+}
+arp	3
+rarp	4
+udp	5
+{
+	pmap	111
+	nns	x7823
+	dgramtest 10024
+}
+tcp	6
+icmp	7
+blast	8
+sunrpc	9
+pmap	10
+vsize	11
+vaddr	12
+chan	13
+select	14
+vchan	15
+null	16
+vnet	17
+vmux	18
+
+mselect	20
+bid	21
+bidctl	22
+vcache	23
+srx	24
+rrx	25
+vdrop	26
+machripc	27
+{
+	ssr	1
+	nns	2
+}
+portmaint	28
+uproxy		29
+lproxy		30
+vtap		31
+sar		32
+nns		33
+rat		34
+join		35
+
+mesh	36
+{
+	blast	1
+	vsize	2
+	bidctl	3
+	bid	4
+	blasttest 5
+	chan 	6
+}
+
+kkt	37
+dgram	38
+bootp   39
+
+#
+# driver anchor protocols
+#
+simeth		1001	# ETH simulator on UDP
+ethdrv		1002	# Mach out-of-kernel ethernet driver
+xklance		1003	# Mach Lance ethernet driver
+# simsimeth	1004	# SIMETH simulator
+# ns8390 	1005	# Mach Intelx86 NS8390 ethernet driver
+xkwd		1006	# Mach wd8003 ethernet driver
+xkmcmsg		1007	# Mach interconnect adaptor
+xkec		1008	# Mach i596 ethernet driver
+
+#
+# API anchor protocols
+#
+xksocket	2001
+
+# crypt protocols
+crypt		3001
+# tcrypt		3002    # DES, length preserving
+# km		3003    # Key Manager
+# bind		3004    # Layered Key Manager
+# rsa		3011    # RSA encryption
+
+# md5		3101    # Ron Rivest's MD5 hash algorithm
+# sha		3102    # NIST Secure Hash Algorithm
+
+# auth		3200    # the Kerberos authorization protocol
+# tkmgr		3201    # the Kerberos ticket manager protocol
+# confounder	3202    # the protocol that prepends a nonce
+# vconf		3203    # the cryptographic confounder
+# vsecsel 	3204    # the security selection protocol
+
+user		3301
+
+dss		3501    # DSS, the NIST Digital Signature Standard
+
+#
+# test protocols
+#
+ethtest		10001
+iptest		10002
+udptest		10005
+tcptest		10006
+blasttest	10008
+sunrpctest	10009
+chantest	10013
+xrpctest	10014
+ethdrvtest	10015
+
+# for testing machnetipc
+ssr             10016
+ssrtest         10017
+
+# udpcrypttest    10018
+# sartest         10019
+alloctest	10020
+allocmon	10021
+servertest	10022
+rpctest		10023
+dgramtest	10024
+sequencertest	10025
+retrieve        10050
+
+# time protocol
+dtime           10101
+dtime_mgmt      10102
+
+# membership protocol - in fact, it's only addr translation
+mship		10201
+# heartbeat protocol
+heartbeat       10202
+# census taker protocol
+censustaker     10203
+# membership protocol
+membership      10204
+# sequencer protocol
+sequencer       10205 
+{
+	membership 	16
+	sequencertest   19
+}
+# panning protocol
+panning         10206

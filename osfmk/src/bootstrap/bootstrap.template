@@ -1,0 +1,28 @@
+#
+# bootstrap.template
+#
+# This file should be installed as /mach_servers/bootstrap.conf
+#
+# This file contains the list of Mach servers to be started by the bootstrap
+# task when the system is booted. The syntax for each entry is: (without the
+# leading "# ")
+#
+# server-name server-file-name [server-arguments]
+#
+# The "server-name" tag is used primarily to identify the task to the Mach
+# 	kernel debugger.
+#
+# The "server-file-name" is the pathname, possibly including a Mach device
+# 	designator preceded by /dev/, of the file to be loaded. A relative
+#	path-name is taken from the directory containing this file. A path
+#	beginning with / (but not /dev/) is taken from /dev/boot_device/.
+#
+# The "server-arguments" are any arguments to be passed to the server.
+# 	For example, the default_pager can taking a paging device name
+#	(ex: /dev/hd0b). The osf1_server (conventionally called "startup",
+#	will accept -s (single-user), -a (prompt for root device), and a
+#	root file system name (ex: hd0a) as it would be typed to the prompt.
+# 
+name_server name_server
+default_pager default_pager
+startup startup

@@ -1,0 +1,196 @@
+NET_ALIAS device aliasing v0.5x
+===============================
+  The main step taken in versions 0.40+ is the implementation of a
+  device aliasing mechanism that creates *actual* devices.
+  This development includes NET_ALIAS (generic aliasing) plus IP_ALIAS
+  (specific IP) support.
+  From version 0.50, dynamic configuration of max alias per device and
+  tx/rx stats for aliases added.
+  Also fixed inter-alias routing and arping problems.
+
+Features
+--------
+o  ACTUAL alias devices created & inserted in dev chain
+o  AF_ independent: net_alias_type objects. Generic aliasing engine.
+o  AF_INET optimized
+o  hashed alias address lookup
+o  net_alias_type objs registration/unreg., module-ables.
+o  /proc/net/aliases & /proc/net/alias_types entries
+o  /proc/sys/net/core/net_alias_max entry (affects hash table size
+   also)
+o  tx/rx stats   
+
+
+o IP alias implementation: static or runtime module.
+
+Usage (IP aliasing)
+-------------------
+  A very first step to test if you are running a net_alias-ed kernel
+  is to check /proc/net/aliases & /proc/net/alias_types entries:
+     # cat /proc/net/alias*
+
+  For IP aliasing you must have IP_ALIAS support included by
+  static linking ('y' to CONFIG_IP_ALIAS? question), or runtime module
+  insertion ('m'):
+     # insmod /usr/src/linux/modules/ip_alias.o (2.0.xx) or
+     # modprobe ip_alias.o
+     
+     Also, dynamic loading is supported (kerneld).
+       You should have the following line in /etc/conf.modules (not needed
+       for newer modutils):
+       alias net_alias-2 ip_alias
+
+  Module options
+  --------------
+  From 0.5x ip_alias module supports a new option ("no_sel" symbol).
+  If no_sel is set (default is 0), alias association (device selection) with
+  foreign addresses will be disabled.
+
+    You will get:
+    - Faster operation by avoiding completely routing lookups. 
+      Due to the "logical nature" of aliasing, netdevice SELection can only be
+      done based on info from network layer. When packet dst address isn't 
+      one of my addresses, I query the routing table to see which netdevice
+      would be selected for packet _source_ address. This option avoids
+      doing so, and you must consider using it if you *only* have same-net
+      aliases (common usage).
+
+    You will loose:
+    - Inter-alias routing
+    - Proxyarp over aliases
+
+  To activate:
+    # insmod ip_alias.o no_sel=1  
+      or
+    # modprobe ip_alias.o no_sel=1
+      or
+    add the following line to /etc/conf.modules:
+      options ip_alias no_sel=1
+
+
+o Alias creation.
+  Alias creation is done by 'magic' iface naming: eg. to create a
+  200.1.1.1 alias for eth0 ...
+  
+    # ifconfig eth0:0 200.1.1.1  etc,etc....
+                   ~~ -> request alias #0 creation (if it not exists) for eth0
+    and routing stuff also ...
+    # route add -host 200.1.1.1 dev eth0:0  (if same IP network as
+					    main device)
+   
+    # route add -net 200.1.1.0 dev eth0:0   (if completely new network wanted
+					    for eth0:0)
+
+o Alias deletion.
+  Also done by magic naming, eg:
+
+    # ifconfig eth0:0-  0  (maybe any address)
+                   ~~~ -> will delete alias (note '-' after dev name)
+  alias device is closed before deletion, so all network stuff that
+  points to it (routes, arp entries, ...) will be released.
+  		   		   
+o Alias (re-)configuring
+  Aliases *are* devices, so you configure and refer to them as usual (ifconfig,
+  route, etc).
+  
+o PROCfs entries
+  2 entries are added to help fetching alias runtime configuration:
+  a) /proc/net/alias_types
+     Will show you alias_types registered (ie. address families that
+     can be aliased).
+     eg. for IP aliasing with 1 alias configured:
+
+     # cat /proc/net/alias_types
+     type    name            n_attach
+     2       ip              1      
+     
+  b) /proc/net/aliases
+     Will show aliased devices info, eg (same as above):
+
+     # cat /proc/net/aliases
+     device           family address                                
+     eth0:0           2      200.1.1.1
+     
+o PROCfs dynamic configuration (from v0.50)
+  You can now change the max aliases per device limit via
+  /proc/sys/net/core/net_alias_max entry (default=256)
+     # cat /proc/sys/net/core/net_alias_max
+     256
+     # echo 1000 > /proc/sys/net/core/net_alias_max
+     # cat /proc/sys/net/core/net_alias_max
+     1000
+     # _
+          
+  With this funcionality you can disable net_alias creation from now on
+     # echo 0 > /proc/sys/net/core/net_alias_max
+
+  The new aliasing limit is considered (grabbed) when creating the
+  FIRST alias for the main device.
+  Eg:
+     # echo 10 > /proc/sys/net/core/net_alias_max
+     # ifconfig eth0:0 xx.xx.xx.xx  (first alias creation for eth0,
+                                     eth0 will 'remember' max==10)
+     # echo 1000 > /proc/sys/net/core/net_alias_max
+     # ifconfig eth0:999 xx.xx.xx.xx
+     SIOCIFSADDR: No such device
+  Of course these semantics can be changed, please let me know.
+  
+  Configuration changes get logged as usual (klogd -> /var/log/messages)
+  
+o Alias devices rx/tx stats
+  Fake rx/tx stats are accounted:
+  - TX
+    When the packet is ``switched'' from logical alias device to
+    physical device, tx counter gets incremented.
+  - RX
+    When an incoming packet's address equals alias network device's addr it
+    gets ``switched'' from physical to logical device, rx counter gets
+    incr.
+    
+  Please NOTE that for ``same'' network alias devices you usually have
+  one net-route through physical device (eg. eth0), so output pkts
+  will NOT pass down via alias device (so, no tx++ will occur).
+  
+  Also NOTE that currently ifconfig does not handle the ``:'' of alias devices
+  names, a little patch solves the problem:
+--- ifconfig.c.dist	Tue Apr  4 17:58:32 1995
++++ ifconfig.c	Fri Oct 25 13:11:23 1996
+@@ -243,7 +243,12 @@
+   		bp++;
+   	if(strncmp(bp,ifname,strlen(ifname))==0 && bp[strlen(ifname)]==':')
+   	{
+- 		bp=strchr(bp,':');
++	   	/* 
++		 * 	start bp at ifname end to prevent ':' ambiguity
++		 * 	with alias devices (eg. eth0:0)
++		 * 	
++		 */
++		bp+=strlen(ifname);
+  		bp++;
+  		sscanf(bp,"%d %d %d %d %d %d %d %d %d %d %d",
+  			&ife->stats.rx_packets,
+  
+Relationship with main device
+-----------------------------
+  - On main device closing, all aliases will be closed and freed.
+  - Each new alias created is inserted in dev_chain just before next
+    main device (aliases get 'stacked' after main_dev), eg:
+      lo->eth0->eth0:0->eth0:2->eth1->0
+    If eth0 is unregistered, all it aliases will also be:
+      lo->eth1->0
+
+Contact
+-------
+Please e-mail me:
+   Juan Jose Ciarlante <irriga@impsat1.com.ar> or <jjciarla@raiz.uncu.edu.ar>
+   
+Acknowledments
+--------------
+Special thanks to Claudia for all her love an patience.
+Also thanks to Antonio Trevi~o <antonio@ecord.gov.ar> great human being 
+and un*x guru.
+
+; local variables:
+; mode: indented-text
+; mode: auto-fill
+; end:

@@ -1,0 +1,166 @@
+# 
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# MkLinux
+
+OPTIONS/gprof		optional gprof
+OPTIONS/fpe		optional fpe
+OPTIONS/kgdb_lan	optional kgdb_lan
+
+busses/gsc/gsc_bus.c		optional gsc device-driver
+
+chips/myricom/net_myricom_gsc.c		optional myri device-driver
+chips/myricom/net_myricom_mcp3.c	optional myri device-driver
+
+hp_pa/HP700/autoconf.c		standard
+hp_pa/HP700/busconf.c		standard
+hp_pa/HP700/cons_conf.c		standard
+hp_pa/HP700/dca.c		optional dca 
+hp_pa/HP700/eisa_common.c     	optional eisaha device-driver
+hp_pa/HP700/gkd.c		optional gkd
+hp_pa/HP700/gkd_keymaps.c	optional gkd
+hp_pa/HP700/glue.c		optional dca device-driver
+hp_pa/HP700/grf.c		optional grf
+hp_pa/HP700/grf_conf.c		optional grf
+hp_pa/HP700/grf_machdep.c	optional grf
+hp_pa/HP700/grf_sti.c		optional grf
+hp_pa/HP700/hil.c		optional hil
+hp_pa/HP700/hil_keymaps.c	optional hil
+hp_pa/HP700/hpux_label.c	optional scsi device-driver
+hp_pa/HP700/if_i596.c		optional lan device-driver
+hp_pa/HP700/if_i596kgdb.c	optional lan kgdb_lan device-driver
+hp_pa/HP700/ite.c		optional ite
+hp_pa/HP700/ite_sti.c		optional ite
+hp_pa/HP700/kgdb_support.c	optional kgdb
+hp_pa/HP700/sh4811/if_sh4811.c        optional fddi device-driver
+hp_pa/HP700/sh4811/iphase_cbrc.c      optional fddi device-driver
+hp_pa/HP700/sh4811/sh4811_intr.c      optional fddi device-driver
+
+hp_pa/alignment.c	standard
+hp_pa/asm_em.s		standard
+hp_pa/asm_excp.s	standard
+hp_pa/bbclock.c		standard
+hp_pa/c_support.s	standard
+hp_pa/cache.s		standard
+hp_pa/conf.c		standard
+hp_pa/cons.c		standard
+hp_pa/cswtch.s		standard
+hp_pa/db_hp800_symtab.c	optional mach_kdb
+hp_pa/decode_exc.c	standard
+hp_pa/denormal.c	standard
+hp_pa/fpu.s		standard
+hp_pa/fpudispatch.c	standard
+hp_pa/hardclock.c	standard
+hp_pa/hp700_init.c	standard
+hp_pa/hp700_rpc.c 	standard
+hp_pa/hw_lock.s 	standard
+hp_pa/instruction.c	optional mach_kdb
+hp_pa/interrupt.s	standard
+hp_pa/kdbsym.c		optional mach_kdb
+hp_pa/klglue.s	        standard
+hp_pa/locore.s		standard
+hp_pa/milli.s		standard
+hp_pa/model_dep.c	standard
+hp_pa/movc.s		standard
+hp_pa/net_filter.c 	standard
+hp_pa/pcb.c		standard
+hp_pa/pdc_console.c	standard
+hp_pa/pdcdump.c		standard
+hp_pa/physmem.c		standard
+hp_pa/pmap.c		standard
+hp_pa/rtclock.c		standard
+hp_pa/setjmp.s		optional kgdb_lan
+hp_pa/spl.s		standard
+
+hp_pa/spmath/dfadd.c	standard
+hp_pa/spmath/dfcmp.c	standard
+hp_pa/spmath/dfdiv.c	standard
+hp_pa/spmath/dfmpy.c	standard
+hp_pa/spmath/dfrem.c	standard
+hp_pa/spmath/dfsqrt.c	standard
+hp_pa/spmath/dfsub.c	standard
+hp_pa/spmath/divsfm.c	standard
+hp_pa/spmath/divsfr.c	standard
+hp_pa/spmath/divsim.c	standard
+hp_pa/spmath/divsir.c	standard
+hp_pa/spmath/divu.s	standard
+hp_pa/spmath/divufr.c	standard
+hp_pa/spmath/divuir.c	standard
+hp_pa/spmath/fcnvff.c	standard
+hp_pa/spmath/fcnvfx.c	standard
+hp_pa/spmath/fcnvfxt.c	standard
+hp_pa/spmath/fcnvxf.c	standard
+hp_pa/spmath/frnd.c	standard
+hp_pa/spmath/impys.s	standard
+hp_pa/spmath/impyu.s	standard
+hp_pa/spmath/mdrr.c	standard
+hp_pa/spmath/mpyaccs.c	standard
+hp_pa/spmath/mpyaccu.c	standard
+hp_pa/spmath/mpys.c	standard
+hp_pa/spmath/mpyscv.c	standard
+hp_pa/spmath/mpyu.c	standard
+hp_pa/spmath/mpyucv.c	standard
+hp_pa/spmath/setovfl.c	standard
+hp_pa/spmath/sfadd.c	standard
+hp_pa/spmath/sfcmp.c	standard
+hp_pa/spmath/sfdiv.c	standard
+hp_pa/spmath/sfmpy.c	standard
+hp_pa/spmath/sfrem.c	standard
+hp_pa/spmath/sfsqrt.c	standard
+hp_pa/spmath/sfsub.c	standard
+
+hp_pa/status.c		standard
+hp_pa/syscall.s		standard
+hp_pa/timex_fix.c	standard
+hp_pa/trap.c		standard
+hp_pa/unasm.c		optional mach_kdb
+
+hp_pa/kkt_map.c		optional dipc
+
+i386/AT386/bios_label.c optional scsi device-driver
+
+kern/etap_map.c		optional etap device-driver
+
+kgdb/kgdb.c		optional kgdb
+kgdb/kgdb_stub.c	optional kgdb
+
+scsi/adapters/scsi_53C700_hdw.c	optional ncr device-driver
+scsi/rz.c		optional scsi device-driver
+scsi/rz_audio.c		optional scsi device-driver
+scsi/rz_cpu.c		optional scsi device-driver
+scsi/rz_disk.c		optional scsi device-driver
+scsi/rz_disk_bbr.c	optional scsi device-driver
+scsi/rz_host.c		optional scsi device-driver
+scsi/rz_labels.c	optional scsi device-driver
+scsi/rz_tape.c		optional scsi device-driver
+scsi/scsi.c		optional scsi device-driver
+scsi/scsi_alldevs.c	optional scsi device-driver
+scsi/scsi_comm.c	optional scsi2 device-driver
+scsi/scsi_cpu.c		optional scsi device-driver
+scsi/scsi_disk.c	optional scsi device-driver
+scsi/scsi_jukebox.c	optional scsi2 device-driver
+scsi/scsi_optical.c	optional scsi2 device-driver
+scsi/scsi_printer.c	optional scsi device-driver
+scsi/scsi_rom.c		optional scsi device-driver
+scsi/scsi_scanner.c	optional scsi2 device-driver
+scsi/scsi_tape.c	optional scsi device-driver
+scsi/scsi_worm.c	optional scsi device-driver
+scsi/scsit.c		optional scsi device-driver
+scsi/scsi_info.c	optional scsiinfo device-driver

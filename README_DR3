@@ -1,0 +1,866 @@
+Table of Contents
+=================
+
+    Introduction
+
+    Machine List
+
+    Partitioning your Hard Disk
+        Basic partitioning information
+        Estimating space requirements
+        Partitioning your disk(s)
+        Repartitioning Existing Disks
+        Partition Types and Names
+        Drive Setup
+        Apple HD SC Setup
+        pdisk
+
+    Installing the Mac OS-side files
+
+    Once you are in the MkLinux Installer
+
+    Getting started with MkLinux
+        Logging in as root
+        Creating a user account
+        Mounting the CD
+        Installing a package
+        Removing a package
+
+    Where to go next
+        Books
+        Online
+
+    Thanks
+
+    Last words
+
+
+Introduction
+============
+
+Welcome to MkLinux Developer Release 3!  MkLinux, as you probably realize, is
+Apple Computer's Mach 3-based version of the GNU/Linux operating system.
+Versions of MkLinux run on the Intel, PA-RISC, and PowerPC architectures.
+This disc contains the version of MkLinux which runs on PowerPC-based Apple
+Power Macintosh and related systems.
+
+With DR3, MkLinux binary executables are compatible with the other PowerPC
+Linux systems (e.g., LinuxPPC).  In addition, MkLinux file systems are byte-
+order compatible with other (e.g., Intel-based) Linux file systems.  Also,
+MkLinux DR3 supports dynamic shared libraries, for greatly reduced disk and
+RAM storage and faster program loading.
+
+Developer Release 3 has been a long time (over a year!) in development.  It
+supports many more machines since the last release (DR2.1) and offers much
+more flexibility in terms of installation options.  As a result of this
+flexibility, the installation process has become rather more complex.  We have
+tried to retain as much simplicity as possible, however!
+
+If, after reading these notes carefully, you still have trouble getting
+MkLinux to run, please make use of the wide variety of user-contributed
+support resources.  Specifically, you should start with the "Frequently Asked
+Questions" (FAQ) on Apple's MkLinux web page (www.mklinux.apple.com).
+
+If the FAQ does not help you, please use the MkLinux mailing lists.  The
+"mklinux-setup" list is probably most appropriate for problems you might
+encounter while installing MkLinux DR3.  Submit your question (in detailed
+form) to the mklinux-setup email list (the MkLinux web site has links to a
+sign-on form).  The members on the setup list are very helpful and
+knowledgeable about a wide range of machines.
+
+Please do not contact directly Apple Computer's MkLinux team or Prime Time
+Freeware for support on MkLinux.  Put simply, neither organization has the
+resources to help you.  You will get better results with the FAQ and mailing
+lists.
+
+
+Machine List
+============
+
+MkLinux DR3 will run on the following PowerPC-based Macintoshes:
+
+    Power Macintosh  6100                    Power Macintosh  9500
+    Performa         61xx                    Power Macintosh  9500/180MP
+    Workgroup Server 6150                    Power Macintosh  9515
+    Power Macintosh  7100                    Power Macintosh  9600
+    Power Macintosh  8100                    Power Macintosh  9600/200MP
+    Power Macintosh  8115                    Workgroup Server 9650
+    Workgroup Server 8150
+    Workgroup Server 9150                    Power Macintosh  4400
+                                             Power Macintosh  5400
+    Power Macintosh  7200                    Performa         54xx
+    Power Macintosh  7215                    Power Macintosh  5500
+    Power Macintosh  7220                    Performa         6360
+    Workgroup Server 7250                    Power Macintosh  6400
+    Power Macintosh  7300                    Performa         64xx
+    Workgroup Server 7350                    Power Macintosh  6500
+    Power Macintosh  7500                    20th Anniversary Macintosh
+    Power Macintosh  7600
+    Power Macintosh  8200                    PowerBook 3400
+    Power Macintosh  8500                    Power Macintosh G3 Desktop
+    Power Macintosh  8515                    Power Macintosh G3 Minitower
+    Workgroup Server 8550                    PowerBook G3
+    Power Macintosh  8600
+
+Notes:
+
+Some of the high-end Power Macintoshes and Workgroup Servers use a PCI-based
+SCSI adapter to access Fast-Wide or Ultra-Wide SCSI devices.  At this time,
+MkLinux cannot access SCSI devices attached via PCI adapters.  In order to use
+MkLinux DR3 on these machines, you will need to attach a separate SCSI disk to
+the Macintosh's onboard or external SCSI connector.
+
+MkLinux has some difficulty accessing various IDE drives that have been
+shipped on some Macintosh systems.  MkLinux will not recognize these drives;
+thus, the MkLinux installer will not report them in its drive list.  As an
+alternative, you can install MkLinux DR3 onto an external SCSI drive.  Check
+the Frequently Asked Questions on www.mklinux.apple.com for current
+information, patches, workarounds, etc.
+
+MkLinux DR3 will run on many of the Macintosh clones.  If you have one of
+these machines, your best bet is to try the installation process and see how
+things go.  If you have problems, send a note to the mklinux-setup list.
+
+
+Partitioning your Hard Disk
+===========================
+
+Partitioning your disk is probably the most difficult step in getting MkLinux
+installed onto your Macintosh.  If you are already familiar with partitioning
+disks on Macintosh systems, you should at least skim this section and proceed
+with your own partitioning method.
+
+Unfortunately, there is no simple partitioning recipe that will work for every
+situation.  Practically every MkLinux installation is unique; each may
+require different tools and methods to accomplish.  The best we can do is to
+provide you with information about partitioning tools and MkLinux's
+requirements, then let you determine which method best serves your needs.
+
+If you are new to disk partitioning concepts, or partitioning disks on
+Macintoshes, then you will want to pay close attention to this section.  Even
+if you are completely unfamiliar with disk partitioning concepts, we feel that
+if you read this section carefully, you _will_ be able to get through the
+partitioning task.  Don't give up, it's really not that difficult.  Also,
+you may want to make use of the helpful people who read and post to the
+mklinux-setup mailing list.
+
+Basic partitioning information
+------------------------------
+
+Most of the disk space that MkLinux needs in order to operate does not reside
+in regular Mac OS volumes.  Instead, MkLinux has its own filesystems, which
+must reside in separate disk partitions.
+
+MkLinux uses two distinct types of disk partitions.  It uses "swap" space to
+store idle portions of the memory used by running programs.  It uses
+"filesystem" space to store directories (i.e., folders) and files.
+
+The amount of swap space MkLinux needs depends on what sorts of tasks the
+machine will be doing and how much physical RAM you have installed.  The swap
+space is combined with the physical RAM in the system to produce the total
+amount of virtual memory available for all running programs.  The minimum
+amount of swap space that the MkLinux DR3 install process will allow is 8 MB.
+Typically, 64 MB of swap space is just fine.
+
+If you have very little RAM or expect to be running many users or programs at
+once, you may want to provide more swap space.  Please keep in mind that the
+maximum usable size of a MkLinux swap partition is 128 MB.  You are free,
+however, to have more than one swap partition.
+
+The MkLinux filesystem has (like Mac OS) a hierarchical directory structure:
+files may exist at any level of the directory hierarchy.  Unlike Mac OS,
+however, MkLinux can graft whole filesystem trees (residing in separate
+partitions) onto the main ("root") filesystem.
+
+This grafting ability, modelled after UNIX, is called "mounting" a filesystem.
+The directory under which the mounted filesystem appears is called a "mount
+point".  By carefully choosing the sizes of your filesystem partitions and
+their mount points, you can create a unified filesystem tree with branches
+existing in separate partitions or even separate disk drives.
+
+MkLinux filesystem partitions are limited, at present, to a maximum of two GB
+each.  Therefore, if you want to have an overall MkLinux filesystem that will
+hold more than 2 GB, you'll need to use multiple partitions.
+
+How you envision using your MkLinux system will help determine where you might
+consider mounting extra filesystems.  For example, if you expect that you will
+be loading many extra programs (or packages) after your initial MkLinux
+install, you might want to dedicate a whole partition to the "/usr" portion
+of your filesystem.  If you expect to have several users, you may want to let
+"/home" (and its subdirectories) reside in its own partition.  If you expect a
+large amount of email or Usenet news to flow through the system, consider
+giving "/var" its own partition.
+
+Finally, if you're not sure how your system will be used, or which areas of
+the filesystem might need their own partition, you can simply put the whole
+MkLinux filesystem into one partition.  The 2 GB rule mentioned above still
+applies, but a single partition filesystem is all you need to get started.
+
+Estimating space requirements
+-----------------------------
+
+The MkLinux DR3 CD contains 420 packages that can be installed initially and
+233 "extra" packages which can be installed later, as desired.  The initial
+installation process provides quite a bit of flexibility in choosing which
+of the initial 420 packages to install.  Follow-on installation is even more
+flexible, allowing any desired package(s) to be installed.
+
+It would be ridiculous for us to list the disk space requirements of every
+combination allowed by the initial installation.  So, we will provide the
+space requirements for three typical MkLinux installations.
+
+The MkLinux installer has a page where you choose several broad categories of
+packages to be installed.  The install configuration called "Absolute Minimum"
+unchecks (de-selects) every option on the selection page.  "Default
+Selections" makes no changes on the selections page.  "Everything" installs
+all 420 packages.
+
+  partition  "Absolute Minimum"     "Default Selections"       "Everything"
+  -------------------------------------------------------------------------
+  /                  15                     15                      16
+  /opt                0                     33                      47
+  /usr               41                    136                     398
+  /var                2                      4                      10
+  /home               0                      0                       3
+  -------------------------------------------------------------------------
+  totals             58                    188                     474
+
+All values are in Megabytes (where 1 Megabyte = 1024*1024 bytes).
+
+Given the five partitions shown above, the table shows the space usage in the
+partition after each of the three separate installations.  It is not necessary
+for you to create all five of these MkLinux filesystem partitions.  In fact,
+the "/opt" partition is not found on most Linux installations.
+
+In general, you will want to have fewer partitions in your installation than
+the five shown above.  As you eliminate partitions, incorporate their space
+into that of the root partition (labelled "/" in the table).
+
+To help you get started, we will walk through two common examples.  An
+"Everything" installation, using the three partitions "/", "/usr", and
+"/home", will require at least 73 MB for "/", 398 MB for "/usr", and 3 MB for
+"/home".  A "Default Selections" installation, with a single filesystem
+partition, will require at least 188 MB in that ("/") partition.
+
+Of course, you will want to leave some extra space in your filesystems so that
+you can actually use your MkLinux system without running out of space on the
+first day!  If you will be installing some of the 233 "extra" packages on the
+CD, then you should increase the amount available in "/usr", as most of those
+packages install files somewhere under the "/usr" directory.
+
+If you want to add several user accounts to your system so that your friends
+can log in, you will want to have plenty of space available for "/home" to
+grow.  "/home" is also the default location of any "anonymous FTP" space or
+web pages that you may want to host on your MkLinux system.  If you expect
+your MkLinux system to be handling lots of email or Usenet news, ensure that
+the "/var" directory has plenty of room to grow.
+
+Hopefully, you now have some idea of what partitions you will want for
+MkLinux.  The next step is to actually make these MkLinux partitions.
+
+Partitioning your disk(s)
+-------------------------
+
+There are three partitioning programs included on this CD.  Each has its
+strengths and weaknesses when applied to the task of partitioning your disk
+for MkLinux.  These differences are discussed below.  However, before we
+begin, it is important that you understand some of the basic concepts of disk
+partitioning on Macintosh systems.
+
+Whether you realize it or not, your system disk is already partitioned.  Most
+of the space on your disk is probably allocated to one partition that contains
+a large Mac OS volume.  There are several smaller partitions, however, which
+hold other bits of information:
+
+ * There is exactly one "Partition Map" partition which holds the
+   partitioning information itself.
+
+ * There is probably at least one "Driver Partition" which enables Mac OS
+   to access the Mac OS volumes on the disk.
+
+ * There may be a "Patch Partition" which has been used to store patches to
+   the Mac OS operating system.
+
+ * Finally, any "free" space must be accounted for in other partitions.
+
+Partitions are contiguous areas on your disk.  Filesystems are data structures
+that exist inside partitions.  Mac OS Standard (also known as HFS) and Mac OS
+Extended (also known as HFS+) volumes are two types of filesystems that may
+exist in partitions.
+
+If you open a volume on your desktop and see something like "353.3 MB in disk
+844.7 MB available", the 844.7 MB is unused space _inside_ that Mac OS
+filesystem.  The message does NOT refer to free partition space.  To find out
+if you have free partition space on your disk, you will need to use a tool
+(such as a partitioner) that looks at the actual partition map.
+
+Repartitioning Existing Disks
+-----------------------------
+
+Although (for safety!) we recommend the use of a separate disk for MkLinux,
+this is not absolutely necessary.  It is possible to repartition your existing
+disk, shrink the Mac OS portion, and install MkLinux in the remaining space.
+
+In most instances, however, shrinking your existing Mac OS volume (and the
+surrounding partition) will require that the Mac OS volume be reinitialized,
+destroying everything you may have in the volume.  Obviously, you would want
+to back up all your important files before destroying your existing volume!
+
+It is possible to shrink a Mac OS volume (and the partition that contains it)
+while keeping the data intact.  The tools supplied in this MkLinux
+distribution cannot perform this task.  However, the task can be accomplished
+with at least one third-party disk partitioning program (FWB's Hard Disk
+Toolkit).  If this is an approach you would like to take, you will need to
+obtain HDT and use it to make free partition space.  You may use either HDT
+or the tools supplied on this CD to add the desired MkLinux partitions.
+
+Partition Types and Names
+-------------------------
+
+Every Macintosh partition has a "type" and a "name".  Both of these pieces of
+information are simple strings.  Usually, the name of a partition can be
+anything you want.  However, there are several important types that you should
+know about, including:
+
+    Apple_partition_map     partition map
+    Apple_Driver43          disk drivers
+    Apple_Patches           Mac OS patches
+    Apple_HFS               Mac OS volumes
+    Apple_UNIX_SVR2         MkLinux partitions
+
+Both standard (HFS) and extended (HFS+) Mac OS volumes are usually contained
+in partitions with the "Apple_HFS" type.  The name of an Apple_HFS partition
+may not be the same as the name of the Mac OS volume that it contains.
+
+The names of the MkLinux filesystem partitions are ignored, so it's handy to
+name them for their intended purpose (e.g., root, home, usr, var, tmp, etc.).
+The MkLinux installer assigns partitions named "swap" for use as swap space.
+
+This disc contains three partitioning programs, with varying capabilities:
+
+    Drive Setup           standard Mac OS utility; partitions Apple drives
+                          (both IDE and SCSI); doesn't make A/UX (MkLinux)
+                          partitions
+
+    Apple HD SC Setup     older Mac OS utility; partitions any SCSI drive;
+                          makes A/UX partitions
+
+    pdisk                 Mac OS/Mklinux utility; makes A/UX partitions
+
+Drive Setup
+-----------
+
+Drive Setup is the standard partitioning utility that is shipped with Mac OS.
+It can create multiple MacOS partitions on your drive, leave free partition
+space (e.g., for use by pdisk), deposit the latest Apple disk drivers onto the
+disk, and create actual Mac OS standard and extended volumes in created
+partititions.  It can partition (Apple-branded) SCSI and IDE drives.
+
+Drive Setup cannot create the A/UX-style partitions used by MkLinux.  One
+common method is to use Drive Setup to create free partition space on your
+drive, then use pdisk to create MkLinux partitions in the free space.  An
+alternative is to have Drive Setup create extra Mac OS partitions, then use
+pdisk to change them to MkLinux partitions before use.
+
+Apple HD SC Setup
+-----------------
+
+Apple HD SC Setup is an older partitioner from Apple that still comes in handy
+occasionally.  HD SC Setup originated in an era when Apple used SCSI drives
+exclusively.  Therefore it will not recognize your IDE drives.  It can,
+however, make A/UX partitions, as used by MkLinux.
+
+By default, HD SC Setup will work on Apple drives only, but it can be
+patched (AT YOUR OWN RISK) to accept other drives:
+
+    Copy Apple HD SC Setup 7.3.5 from the CD to a writable Mac OS drive.
+    Change the one byte in the "wfwr" ID 67 resource from "00" to "FF".
+
+For more information, see www.euronet.nl/users/ernstoud/patch.html
+
+pdisk
+-----
+
+The pdisk partitioner was adapted from a Linux partitioner.  Pdisk can do
+practically anything to your partition table.  It runs on Apple-sanctioned as
+well as non-Apple drives.  Pdisk can even modify the partition table of the
+disk that you're currently running from.  However, pdisk has some problems.
+
+The main problem is that pdisk is not a typical Mac OS application.  It has a
+command-line interface that can be intimidating to many.  Another disadvantage
+is that it does not do anything to areas of the disk other than the partition
+map.  Consequently it cannot install a driver onto your disk, nor can it
+create HFS or HFS+ volumes.  (However, it is important to note that it is not
+necessary to have a driver partition on a disk that doesn't have an HFS
+partition.)
+
+Pdisk has two variants.  One is a program that runs under Mac OS.  The other
+is a MkLinux program that is available to you when the MkLinux installer is
+running.  The Mac OS version uses Mac OS facilities to access the disks;
+the MkLinux version uses MkLinux's facilities.  However, the "engine" in pdisk
+is the same between the two versions.  So, once you learn to use one, you will
+know how to use the other.
+
+Even though it can be intimidating at first, we recommend that you learn
+enough of pdisk to at least display the partition table on a disk.  A good
+reference on how to use pdisk is located in the "pdisk.html" file in the
+"MacOS Utilities" folder on this disc.  Just point your favorite browser to
+the pdisk.html file.  Of all the partitioners mentioned, pdisk is the best one
+to show your disk's true partition layout.
+
+
+Installing the Mac OS-side files
+================================
+
+There are five files in the "Mac Files" folder.  Copy the two files "MkLinux
+Booter" and "Mach Kernel" to your Extensions folder.  Copy the control panel
+"MkLinux" to your Control Panels folder.  Copy the two files "lilo.conf" and
+"MkLinux.prefs" to your Preferences folder.
+
+The initial boot of MkLinux just runs the installer.  Currently, things are
+set to install from a SCSI CD-ROM drive.  If your machine has a SCSI CD-ROM
+drive, you will not need to change anything.  Skip ahead a few paragraphs to
+where you "Restart your Macintosh".
+
+If your machine has an ATAPI CD-ROM, then you will need to change a setting.
+If you have one of the following machines, you probably have an ATAPI CD-ROM
+drive:
+
+    Power Macintosh 4400
+    Any "Tanzania" based clone
+    PowerBook 3400
+    PowerBook G3
+    Power Macintosh G3
+
+To determine whether your machine has an ATAPI CD-ROM drive, insert a disc
+into your drive, click once on the disc's desktop icon, and run "Get Info"
+(from the File menu).  If the "Where:" line ends in "(ATAPI ..)", you have an
+ATAPI CD-ROM drive and you will need to change the rootdev setting.
+
+To change MkLinux so that it will retrieve the installer from an ATAPI CD-ROM
+drive, launch the "MkLinux" control panel and select "Custom...".  SimpleText
+will be launched to edit your "lilo.conf" file.  Change your rootdev according
+to the instructions in the lilo.conf file.  (Basically, you will change a line
+so that it reads: "rootdev=/dev/hdc").
+
+Restart your Macintosh.  Upon reboot, you should see the MkLinux "splash
+screen".  It is set to default boot into Mac OS.  Click on the "MkLinux"
+button, and the MkLinux installer should run.
+
+
+Once you are in the MkLinux Installer
+=====================================
+
+The MkLinux installer is adapted from the well-known "Red Hat Linux"
+installer, originally written by Red Hat Software.  The installer was ported
+to MkLinux with the intent of making as few changes as possible.  Therefore,
+you will probably notice that there are still many references to "Red Hat
+Linux".  Also, there are some concepts presented that are appropriate for
+other Linux installations, but inappropriate for MkLinux.  Don't worry; with
+some basic instruction, you will be able to use the installer to get your
+MkLinux system installed with the desired collection of packages.
+
+When you get to the first page of the installer, you should see a blue back-
+ground and a white text window with black characters.  If you don't get these
+colors, you may want to reboot into Mac OS and use the "Monitors and Sound"
+control panel to choose a 256-color scheme.
+
+The following keys will help you navigate while using the installer:
+
+    Tab             Move to the next field
+    Return          Select the current highlighted choice
+    Up/Down Arrow   Move up/down in a list of items
+    Space           Check or Uncheck the selected list item
+
+Below is a step-by-step description of the various installation screens.
+
+ "Welcome to MkLinux" Screen
+
+     Simply press Return to continue to the next screen.
+
+ "Keyboard Type" Screen
+
+     Select a keyboard type.  This controls the keyboard mapping.  Not all
+     the listed keyboard mappings work properly.  If you find this is the
+     case for your selection, start over and select "us" as your keyboard
+     type.  You should be able to continue through the installation.
+
+ "Installation Method" Screen
+
+     Since the packages to be installed reside on the CD, choose "Local
+     CD-ROM".
+
+ "Installation Path" Screen
+
+     Choose "Install".  The other option, "Upgrade", is intended to add
+     packages to an already installed Red Hat system, and is not supported
+     in this release.
+
+ "Partition Disks" Screen
+
+     The installer will show you a list of disks on your system that MkLinux
+     has recognized.  If you select one and choose "Edit", you will be able
+     to view and optionally change that disk's partition map using the
+     MkLinux version of pdisk.  When you have finished viewing/editing the
+     partition maps on various disks, choose "Done".
+
+     (Don't confuse this screen with the upcoming "Partition Disk" screen.)
+
+ "Select Root Partition" Screen
+
+     The installer will list every partition that is appropriate for an
+     MkLinux filesystem.  Pick one to use for your "root" partition.
+
+     Only partitions of type "Apple_UNIX_SVR2" are shown.  Also, any
+     partitions you designated as swap partitions (by putting the word "swap"
+     in the name) will not be shown.
+
+ "Partition Disk" Screen
+
+     This page will list the other partitions that are available to be
+     mounted.  Use the arrow keys to highlight a particular partition, then
+     press Return.  A follow-on dialog will tell the installer where you
+     would like to have the filesystem in that partition mounted.  You may
+     also use this page to mount your Mac OS Standard (HFS) volumes.  Please
+     note, however, that the HFS volumes will be mounted read-only.
+
+     Any MkLinux partitions you designated as swap partitions (by putting
+     the word "swap" in the name) will not be shown.
+
+     (Don't confuse this screen with the previous "Partition Disks" screen.)
+
+ "Active Swap Space" Screen
+
+     The installer will give you a list of every partition that is suitable
+     to be a MkLinux swap partition.  Remember, use the Space bar to
+     set/unset which partitions you want to use for swap.
+
+ "Find installation files" Screen
+
+     This isn't a real screen.  However, you may notice a significant pause
+     here.  Be patient; if you have a relatively slow CD-ROM drive, you may
+     need to wait a few minutes.
+
+ "Format Partitions" Screen
+
+     The installer will give you a list of partitions.  You will need to use
+     the arrow keys and space bar to select which partitions to format.  If
+     you have never used MkLinux in these partitions, you must reformat all
+     of them.  If you have used MkLinux DR2.1 (or an earlier version), we
+     suggest that you reformat _all_ your MkLinux partitions.  If you have
+     used MkLinux "pre-DR3", we suggest that you format at least the system
+     partitions, such as / (the root partition), /usr, or /var.
+
+ "Components to Install" Screen
+
+     At this point, the installer will present you with a list of selected
+     collections of packages.  Use the Space bar to select the ones that
+     seem appropriate for your installation.
+
+     At the very end of the list, there is an item labelled "Everything".
+     Selecting "Everything" will install every package (all 420 of them!)
+     available in the main package set, even those not represented in the
+     other groups.
+
+     There is also a box that you can check labelled "Select individual
+     packages".  If this box is checked when you leave this screen, you will
+     go to a set of screens where you can select the packages individually.
+
+ "Install log" Screen
+
+     This is just an informative message explaining that an installation log
+     will be saved and will be viewable after the installation in the file
+     "/tmp/install.log".
+
+ "Install System" Screens
+
+     At this point, the installer will proceed to create the filesystems in
+     your MkLinux partitions, then install the packages that you selected.
+     A progress bar will be displayed, along with estimates of how much time
+     it will take to complete installing the packages.
+
+     There are a few packages that write to the installer screen, making the
+     display somewhat messy.  You may safely ignore these messages.
+
+ "Configure Mouse" Screen
+
+     Choose ADB Mouse.  Note: the "emulate three buttons" option is not
+     applicable in MkLinux at this time.
+
+ "Network Configuration" Screen
+
+     If your MkLinux system is connected to a TCP/IP-based Local Area
+     Network, and you want to configure your system to operate on this
+     network at this time, choose "Yes".
+
+     The installer will bring up two screens, the first is the "Configure
+     TCP/IP" screen.  You will need to know an IP address for your system,
+     the Net Mask, a Default Gateway address, and a DNS nameserver address.
+     If you don't know these values, you should ask your Network
+     Administrator.
+
+     Checking "Configure device with bootp" (with the Space bar) indicates
+     that you want to query the network for a set of values appropriate for
+     your machine.
+
+     The "Configure Network" screen allows you to enter your domain name and
+     host name.  Also, if you have any alternate nameservers, you should
+     enter them here.
+
+ "Configure Timezones" Screen
+
+     This is the place to set your local timezone.  Use the up and down
+     arrow keys to select the correct timezone from the list.
+
+     You should always check the "Hardware clock set to GMT" box if you want
+     MkLinux to read your Mac OS clock correctly.  Don't worry; this will
+     not affect your Mac OS clock in any way.
+
+ "Services" Screen
+
+     The installer will present a list of the services that can be started
+     automatically when your MkLinux system boots.  If you are not familiar
+     with which services you want and which ones you don't want, it is safe
+     to simply leave the checkboxes unchanged.
+
+ "Configure Printer" Screen
+
+     If you choose "Yes" on this screen, the installer will present you with
+     a few more screens asking fairly straight-forward questions about your
+     printer.  Please note that, at this time, you cannot set up an
+     AppleTalk printer using this mechanism.
+
+ "Root Password" Screen
+
+     You must pick a password for the "root" account.  Remember this
+     password, because the "root" account will be the first thing you need
+     once the MkLinux installation is complete.  Note that when you type the
+     password, the characters do not appear.
+
+ "Info" Screen
+
+     Be sure to remember or write down the "rootdev" value that the
+     installer tells you on this screen.  You will need it in a few steps.
+
+ "Done" Screen
+
+     When you press ok, the system will reboot.  You will need to go into
+     Mac OS at least one more time to change the rootdev setting (mentioned
+     in the previous screen).
+
+     When the system reboots, the MkLinux "Splash Screen" will appear again.
+     Select "Mac OS".  Once Mac OS has booted, invoke the MkLinux Control
+     Panel.  Press the "Custom..." button in the control panel.  The
+     SimpleText editor will be launched and you will be editing the
+     "lilo.conf" file.  Change the line that contains "rootdev=/dev/XXXX" to
+     the value that the installer gave you.  Save the file and quit.
+
+     This is a good time to choose your "Startup Selection".  Click the
+     button next to either Mac OS or MkLinux.  (This sets the default choice
+     at the MkLinux Splash Screen.  At the splash screen, you can always
+     override the default choice.)
+
+     Close the MkLinux Control Panel and restart your Macintosh.  Choose
+     MkLinux.  (If MkLinux is the default OS, you may simply choose to wait
+     10 seconds.)  MkLinux should now boot, placing you at the "login
+     prompt".
+
+
+Getting started with MkLinux
+============================
+
+Now that you have Mklinux installed, you'll want to start using it to do
+useful and fun things.  It is not possible for us to describe here everything
+that you can do with MkLinux.  For more assistance with using MkLinux (or
+practically any Linux system), please see the references below.  For now, here
+are a few simple things that you can do with MkLinux to get started.
+
+Logging in as root
+------------------
+
+    At the "login:" prompt, type "root" then return and enter root's
+    password at the password prompt.  (Root's password is the one you chose
+    during the installation process.)
+
+    In general, you should use the root account to do system administration
+    only.  For instance, you would want to use the root account to add
+    packages, remove packages, configure your networking, and in some cases
+    shut the system down.  For day-to-day operation of your MkLinux system,
+    you should create and use a user account for yourself.
+
+Creating a user account
+-----------------------
+
+    Log in as root and use the "adduser" command.  For instance, if you want
+    to create an account for Joe, you would issue the command:
+
+        adduser joe
+
+    This will create an account for joe, along with an associated home
+    directory "/home/joe".
+
+    Joe's account will need to have an initial password.  Still as root,
+    issue the following command:
+
+        passwd joe
+
+    You will be prompted to enter an initial password for Joe's account.
+
+Mounting the CD
+---------------
+
+    If you want to add some packages or access files from the MkLinux DR3
+    CD, you will first need to "mount" the CD.  While logged in as root,
+    issue the following command:
+
+        mount -r -t iso9660 /dev/cdrom /mnt/cdrom
+
+    The CD is now mounted and accessible in your filesystem directory tree
+    under /mnt/cdrom.  If you issue the commands:
+
+        cd /mnt/cdrom
+        ls
+
+    You will see the contents of the top directory on the CD.
+
+    Once you have finished accessing the files on the CD, you will need to
+    "unmount" the CD before you can remove it from the CD-ROM drive.  Issue
+    the following commands (as root):
+
+        cd                      # Change directory to be outside /mnt/cdrom
+        umount /mnt/cdrom
+
+Installing a package
+--------------------
+
+    There are two separate directories on the MkLinux DR3 CD that contain
+    packages that you can install.  Assuming that you mounted the CD under
+    /mnt/cdrom, the main packages directory will be here:
+
+        /mnt/cdrom/RedHat/RPMS
+
+    The extra packages will be here:
+
+        /mnt/cdrom/extra/RPMS
+
+    For example, if you want to install the "zsh" package, you should issue
+    the following commands (as root):
+
+        cd /mnt/cdrom/RedHat/RPMS      # change directory to the packages dir
+        rpm -ihv zsh-3.0.5-1b.ppc.rpm  # install the zsh package
+
+    A complete listing and description of the main packages is in the file:
+
+        /mnt/cdrom/RedHat/rpmcontents.gz
+
+    Similarly, there is a listing of the extra packages:
+
+        /mnt/cdrom/extras/rpmcontents.gz
+
+    These rpmcontents files are compressed text files.  To view them, issue
+    a command such as this:
+
+        zless /mnt/cdrom/RedHat/rpmcontents.gz
+
+Removing a package
+------------------
+
+    You can remove packages easily.  For instance, if you had installed the
+    "inn" package (The Internet News System) during the initial installation,
+    and now you realize that you do not intend to run Usenet news service on
+    your MkLinux system, then you might want to remove the inn package.  As
+    root, issue the command:
+
+        rpm -e inn
+
+Starting the X Window System:
+
+    You may start X, the graphics system popular with practically every Unix
+    system, by issuing the command:
+
+        startx
+
+    Typically, you would run X from your regular user account.
+
+
+Where to go next
+================
+
+Books
+-----
+
+  MkLinux - Microkernel Linux for the Power Macintosh
+
+    Prime Time Freeware (www.ptf.com) publishes book/CD collections of
+    Open Source software.  At the request of Apple Computer, PTF created
+    a Reference Release for MkLinux.  The release contains information
+    on installing, using, and modifying the MkLinux system.
+
+  Running Linux
+
+    O'Reilly and Associates (www.oreilly.com) is a leading publisher of
+    books on Unix-related topics.  "Running Linux", although written with
+    standard Linux in mind, is a very useful supplement for the MkLinux
+    Reference Release.
+
+Online
+------
+
+  www.mklinux.apple.com
+
+  www.linux.org
+
+
+Thanks
+======
+
+This release of MkLinux would not have been possible without the efforts of
+many people.  We are grateful to everyone who has used, tested, reported bugs,
+made suggestions, or even submitted fixes to earlier versions of MkLinux.
+There are so many people involved, it would be impossible to list them all.
+However, there are a few individuals who have made significant contributions
+recently that have been extremely beneficial in the production of MkLinux
+Developer Release 3:
+
+Mark Hatle (Mankato State University) ported the Red Hat Installer for use
+with MkLinux.  In doing so, he had to fix portions of MkLinux so that the
+Installer would operate correctly.  Mark has also assisted with the DR3 RPM
+package set.
+
+Jack Howarth (University of Cincinatti College of Medicine) helped
+tremendously with the DR3 RPM package set.  From the earliest "pre-DR3"
+snapshot, hundreds of RPMs had to be updated, adjusted, or simply rebuilt.
+Jack's diligence in this area has made for an excellent package set.
+
+Brad Midgley (Pacific HiTech, Inc.) ported some HFS code to work properly in
+the Mach Bootstrap task.  This is a key piece to getting the Red Hat installer
+running as the initial MkLinux installation is booted from an HFS filesystem.
+
+James Pearson (University College London) modified mkisofs, yielding the
+utility "mkhybrid".  mkhybrid can create a CD-ROM image that has both ISO-9660
+and Apple HFS filesystem structures.  The MkLinux DR3 CD image was created
+with "mkhybrid".
+
+Gary Thomas (The Open Group, Research Institute) has contributed far too many
+things to list that are directly applicable to MkLinux DR3.
+
+And finally, we would like to thank the entire Linux/PPC team for their
+efforts in porting so many software packages.  In most cases these packages
+run unmodified on both Linux/PPC and MkLinux systems.
+
+
+Last words
+===========
+
+Be sure to check the MkLinux website:
+
+    http://www.mklinux.apple.com/
+
+for further information on current and future developments with MkLinux.
+
+On behalf of everyone involved in making MkLinux Developer Release 3 a
+reality, we hope you find that MkLinux is both fun and useful.
+
+The MkLinux Team
+Apple Computer
+July, 1998

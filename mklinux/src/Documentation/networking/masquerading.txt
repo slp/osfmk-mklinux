@@ -1,0 +1,51 @@
+IP Masquerading lets you run multiple machines on a network behind a
+Linux box so that all the machines (including the Linux masquerade box)
+appear as a single IP address to the outside world.
+
+The main use of masquerading is when your ISP only gives you one IP
+address and wants to charge like a wounded bull for multiple IP
+addresses.  Instead of paying your ISP large amounts of money for a
+separate address for each of your machines, funnel them all through a
+Linux box running IP masquerading.  Even when you have multiple IP
+addresses, you can still use masquerading if you want to hide your
+internal networks from the rest of the world.
+
+To activate IP masquerading, compile the kernel with IP Forwarding, IP
+Firewalling and IP Masquerading, the first two options must be on
+before you can see the masquerade option.  Also consider using the
+ipautofw and ICMP masquerading suboptions.
+
+Some of the masq code is in the kernel, some is in modules so you have
+to make zImage and make modules.  There are masq helper modules to
+handle special protocols, you only need to load a helper module if you
+want to use the corresponding protocol.  Helper modules have to be
+explicitly loaded (usually from somewhere in /etc/rc.d), they cannot be
+loaded using kerneld.  The current helper modules are ip_masq_ftp,
+ip_masq_irc, ip_masq_raudio, ip_masq_cuseeme, ip_masq_vdolive,
+ip_masq_quake.
+
+All of the modules can take a parameter specifying the port they work
+on - ie ftp handles connections to port 21 by default.  This parameter,
+which can be ommitted to take the default port(s) makes the command
+line look like this
+	insmod ip_masq_raudio.o ports=7070,7071,7072
+Up to 12 ports can be specified (this value can be changed if you 
+recompile).
+
+Masquerading is more of a server function than a single user function.
+Using it correctly requires some knowledge of TCP, UDP, IP and a high
+level understanding of some protocols.  For more details on IP
+masquerading, visit 
+	http://www.indyramp.com/masq/
+and read the HOWTO.
+
+There is a mailing list covering use of masqueraing, information can
+be found on the indyramp web site given above - please read the basic
+information before posting to the mailing list.
+
+Other information on masquerading can be found at
+	http://www.wwonline.com/~achau/ipmasq/
+
+							March 5, 1997
+							Keith Owens
+							Nigel Metheringham

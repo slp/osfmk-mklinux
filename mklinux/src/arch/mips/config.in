@@ -1,0 +1,118 @@
+#
+# For a description of the syntax of this configuration file,
+# see the Configure script.
+#
+mainmenu_name "Linux Kernel Configuration"
+  
+mainmenu_option next_comment
+comment 'Machine setup'
+
+bool 'Support for Acer PICA 1 chipset' CONFIG_ACER_PICA_61
+bool 'Support for DECstation' CONFIG_DECSTATION
+bool 'Support for Deskstation RPC44' CONFIG_DESKSTATION_RPC44
+bool 'Support for Deskstation Tyne' CONFIG_DESKSTATION_TYNE
+bool 'Support for Mips Magnum 3000' CONFIG_MIPS_MAGNUM_3000
+bool 'Support for Mips Magnum 4000' CONFIG_MIPS_MAGNUM_4000
+bool 'Support for Olivetti M700' CONFIG_OLIVETTI_M700
+if [ "$CONFIG_ACER_PICA_61" = "y" -o \
+     "$CONFIG_MIPS_MAGNUM_4000" = "y" -o \
+     "$CONFIG_OLIVETTI_M700" = "y" ]; then
+	define_bool CONFIG_MIPS_JAZZ y
+fi
+
+choice 'CPU type' \
+	"R3000 CONFIG_CPU_R3000	\
+	 R6000 CONFIG_CPU_R6000	\
+	 R4x00 CONFIG_CPU_R4X00	\
+	 R4600 CONFIG_CPU_R4600	\
+	 R8000 CONFIG_CPU_R8000	\
+	 R10000 CONFIG_CPU_R10000" R4x00
+if [ "$CONFIG_CPU_R3000" = "y" -o \
+     "$CONFIG_CPU_R6000" = "y" -o \
+     "$CONFIG_CPU_R4X00" = "y" -o \
+     "$CONFIG_CPU_R4600" = "y" -o \
+     "$CONFIG_CPU_R8000" = "y" ]; then
+	define_bool CONFIG_TLB_SHUTDOWN y
+fi
+
+define_bool CONFIG_BINFMT_ELF y
+define_bool CONFIG_BINFMT_AOUT y
+bool 'Compile the kernel into the ELF object format' CONFIG_ELF_KERNEL
+if [ "$CONFIG_ELF_KERNEL" = "y" ]; then
+  bool 'Is your ELF compiler an extra compiler' CONFIG_EXTRA_ELF_COMPILER
+fi
+bool 'Generate little endian code' CONFIG_CPU_LITTLE_ENDIAN
+bool 'Networking support' CONFIG_NET
+#bool 'PCI bios support' CONFIG_PCI
+#if [ "$CONFIG_PCI" = "y" ]; then
+#  if [ "$CONFIG_EXPERIMENTAL" = "y" ]; then
+#    bool '   PCI bridge optimization (experimental)' CONFIG_PCI_OPTIMIZE
+#  fi
+#fi
+bool 'System V IPC' CONFIG_SYSVIPC
+endmenu
+
+mainmenu_option next_comment
+comment 'Loadable module support'
+bool 'Set version information on all symbols for modules' CONFIG_MODVERSIONS
+endmenu
+
+source drivers/block/Config.in
+
+if [ "$CONFIG_NET" = "y" ]; then
+  source net/Config.in
+fi
+
+mainmenu_option next_comment
+comment 'SCSI support'
+
+tristate 'SCSI support' CONFIG_SCSI
+
+if [ "$CONFIG_SCSI" != "n" ]; then
+  source drivers/scsi/Config.in
+fi
+endmenu
+
+if [ "$CONFIG_NET" = "y" ]; then
+  mainmenu_option next_comment
+  comment 'Network device support'
+
+  bool 'Network device support' CONFIG_NETDEVICES
+  if [ "$CONFIG_NETDEVICES" = "y" ]; then
+    source drivers/net/Config.in
+  fi
+  endmenu
+fi
+
+mainmenu_option next_comment
+comment 'CD-ROM drivers (not for SCSI or IDE/ATAPI drives)'
+
+bool 'Support non-SCSI/IDE/ATAPI drives' CONFIG_CD_NO_IDESCSI
+if [ "$CONFIG_CD_NO_IDESCSI" != "n" ]; then
+  source drivers/cdrom/Config.in
+fi
+endmenu
+
+source fs/Config.in
+
+source drivers/char/Config.in
+bool 'Standard serial device support' CONFIG_SERIAL n
+
+mainmenu_option next_comment
+comment 'Sound'
+
+tristate 'Sound card support' CONFIG_SOUND
+if [ "$CONFIG_SOUND" != "n" ]; then
+  source drivers/sound/Config.in
+fi
+endmenu
+
+mainmenu_option next_comment
+comment 'Kernel hacking'
+
+#bool 'Debug kmalloc/kfree' CONFIG_DEBUG_MALLOC
+bool 'Kernel profiling support' CONFIG_PROFILE
+if [ "$CONFIG_PROFILE" = "y" ]; then
+  int ' Profile shift count' CONFIG_PROFILE_SHIFT 2
+fi
+endmenu

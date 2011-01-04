@@ -1,0 +1,66 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+
+subsystem ipc 0;
+
+import "ipc_types.h";
+
+ServerPrefix do_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+type inline_128_t = array[128] of char;
+type inline_1024_t = array[1024] of char;
+type inline_4096_t = array[4096] of char;
+type inline_8192_t = array[8192] of char;
+type ool_t = ^array[] of char;
+type mach_port_move_receive_array_t = ^array[] of mach_port_move_receive_t
+	ctype: mach_port_array_t;
+
+routine null_snd_rcv(server: mach_port_t);
+
+simpleroutine null_ipc(server: mach_port_t);
+
+routine make_send_ipc(server: mach_port_t; port: mach_port_make_send_t);
+
+routine copy_send_ipc(server: mach_port_t; port: mach_port_copy_send_t);
+
+routine inline_128_ipc(server: mach_port_t; buf: inline_128_t);
+
+routine inline_1024_ipc(server: mach_port_t; buf: inline_1024_t);
+
+routine inline_4096_ipc(server: mach_port_t; buf: inline_4096_t);
+
+routine inline_8192_ipc(server: mach_port_t; buf: inline_8192_t);
+
+routine ool_ipc(server: mach_port_t; touch: int; buf: ool_t);
+
+routine add_to_port_set(server: mach_port_t; ports: mach_port_move_receive_array_t);
+
+routine port_cleanup(server: mach_port_t; port: mach_port_t);
+
+simpleroutine enable_port_set(server: mach_port_t);
+
+simpleroutine disable_port_set(server: mach_port_t);

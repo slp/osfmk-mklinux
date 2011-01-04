@@ -1,0 +1,57 @@
+#ifndef _I386_MATH_EMU_H
+#define _I386_MATH_EMU_H
+
+#include <asm/sigcontext.h>
+
+void restore_i387_soft(struct _fpstate *buf);
+struct _fpstate * save_i387_soft(struct _fpstate * buf);
+
+struct fpu_reg {
+	char sign;
+	char tag;
+	long exp;
+	unsigned sigl;
+	unsigned sigh;
+};
+
+
+/* This structure matches the layout of the data saved to the stack
+   following a device-not-present interrupt, part of it saved
+   automatically by the 80386/80486.
+   */
+struct info {
+	long ___orig_eip;
+	long ___ret_from_system_call;
+	long ___ebx;
+	long ___ecx;
+	long ___edx;
+	long ___esi;
+	long ___edi;
+	long ___ebp;
+	long ___eax;
+	long ___ds;
+	long ___es;
+	long ___fs;
+	long ___gs;
+	long ___orig_eax;
+	long ___eip;
+	long ___cs;
+	long ___eflags;
+	long ___esp;
+	long ___ss;
+	long ___vm86_es; /* This and the following only in vm86 mode */
+	long ___vm86_ds;
+	long ___vm86_fs;
+	long ___vm86_gs;
+};
+
+/* Interface for converting data between the emulator format
+ * and the hardware format. Used for core dumping and for
+ * ptrace(2) */
+void hardreg_to_softreg(const char hardreg[10],
+			      struct fpu_reg *soft_reg);
+
+void softreg_to_hardreg(const struct fpu_reg *rp, char d[10],
+			long int control_word);
+
+#endif

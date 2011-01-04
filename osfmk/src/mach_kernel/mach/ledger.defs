@@ -1,0 +1,84 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+subsystem
+#if	KERNEL_USER
+	  KernelUser
+#endif	/* KERNEL_USER */
+#if	KERNEL_SERVER
+	  KernelServer
+#endif	/* KERNEL_SERVER */
+		       ledger 5000;
+
+#ifdef	KERNEL_USER
+userprefix r_;
+#endif	/* KERNEL_USER */
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+/*
+ *	Create a subordinate ledger
+ */
+routine ledger_create(
+		parent_ledger		: ledger_port_t;
+		ledger_ledger		: ledger_port_t;
+	out	new_ledger		: ledger_port_t;
+		transfer		: ledger_item_t);
+
+/*
+ *	Get the remote ledger service port
+ */
+routine ledger_get_remote(
+		ledger			: ledger_port_t;
+		host			: host_t;
+	out	service_ledger		: ledger_port_t);
+
+/*
+ *	Return the ledger limit and balance
+ */
+routine ledger_read(
+		ledger			: ledger_port_t;
+	out	balance			: ledger_item_t;
+	out	limit			: ledger_item_t);
+
+/*
+ *	Sets the remote ledger service port
+ */
+routine ledger_set_remote(
+		ledger			: ledger_port_t;
+		service_ledger		: ledger_port_t);
+
+/*
+ *	Destroy a ledger
+ */
+routine ledger_terminate(
+		ledger			: ledger_port_t);
+
+/*
+ *	Transfer resources from a parent ledger to a child
+ */
+routine ledger_transfer(
+		parent_ledger		: ledger_port_t;
+		child_ledger		: ledger_port_t;
+		transfer		: ledger_item_t);

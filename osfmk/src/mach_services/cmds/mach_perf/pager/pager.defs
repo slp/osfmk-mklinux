@@ -1,0 +1,64 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+
+/*
+ * MkLinux
+ */
+
+
+subsystem pager 300;
+
+import "pager_types.h";
+
+ServerPrefix do_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+type mach_port_make_send_array_t = ^array[] of mach_port_make_send_t
+	ctype	: mach_port_array_t;
+
+type mach_port_move_send_array_t = ^array[] of mach_port_move_send_t
+	ctype	: mach_port_array_t;
+
+routine create_memory_objects(
+	server	: mach_port_t;
+	nobjs	: int;
+    out	objects: mach_port_make_send_array_t, dealloc;
+	size	: vm_size_t;
+	flags	: int;
+	prot	: vm_prot_t);
+
+routine destroy_memory_objects(
+	server	: mach_port_t;
+    	objects	: mach_port_move_send_array_t, dealloc);
+
+routine mo_attr_test(
+	server	: mach_port_t; 
+	object	: mach_port_t;
+	op	: int);
+
+routine mo_data_supply_test(
+	server	: mach_port_t; 
+	object	: mach_port_t;
+	op	: int);
+
+

@@ -1,0 +1,308 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+# 
+#
+# Mach Operating System
+# Copyright (c) 1991,1990 Carnegie Mellon University
+# All Rights Reserved.
+# 
+# Permission to use, copy, modify and distribute this software and its
+# documentation is hereby granted, provided that both the copyright
+# notice and this permission notice appear in all copies of the
+# software, derivative works or modified versions, and any portions
+# thereof, and that both notices appear in supporting documentation.
+# 
+# CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS" 
+# CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+# ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+# 
+# Carnegie Mellon requests users of this software to return to
+# 
+#  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+#  School of Computer Science
+#  Carnegie Mellon University
+#  Pittsburgh PA 15213-3890
+# 
+# any improvements or extensions that they make and grant Carnegie Mellon
+# the rights to redistribute these changes.
+#
+
+OPTIONS/gprof		optional gprof
+OPTIONS/fpe		optional fpe
+OPTIONS/db_machine_commands	optional db_machine_commands
+OPTIONS/dynamic_num_nodes	optional dynamic_num_nodes
+OPTIONS/vtoc_compat	optional vtoc_compat
+OPTIONS/fddi		optional fddi
+OPTIONS/mp_v1_1		optional mp_v1_1
+
+busses/cbus/cbus.c	optional cbus
+busses/cbus/cbus_init.c	optional cbus
+busses/mbus/mbus.c	optional mbus
+busses/pci/pci.c	optional pci device-driver
+
+
+busses/cbus/hi_res_clock.sq	optional cbus hi_res_clock
+busses/mbus/hi_res_clock.s	optional mbus hi_res_clock
+i386/hi_res_clock_map.c 	optional hi_res_clock
+
+chips/busses.c		optional at386
+chips/busses.c          optional esp ipsc386 device-driver |${FORCE_VOLATILE}
+
+device/dma_support.c 	optional pci device-driver
+device/dma_direct_map.c optional pci device-driver
+
+intel/pmap.c		standard
+intel/read_fault.c	standard
+
+./mach/mach_i386_server.c standard
+
+ddb/db_aout.c		optional mach_kdb
+
+i386/_setjmp.s		standard
+i386/ast_check.c	optional ipsc386
+i386/ast_check.c	optional symmetry
+i386/bcopy.s		standard
+i386/bzero.s		standard
+i386/cpuid.c		standard
+i386/db_disasm.c	optional mach_kdb
+i386/db_interface.c	optional mach_kdb
+i386/db_trace.c		optional mach_kdb
+i386/fpe.b		optional fpe
+i386/fpe_linkage.c	optional fpe
+i386/fpu.c		standard
+i386/gcc.s		standard
+i386/gdt.c		standard
+i386/hardclock.c	standard
+i386/i386_lock.s	standard
+i386/idt.s		standard
+i386/kgdb_interface.c	optional mach_kgdb
+i386/interrupt.s	optional at386
+i386/interrupt.s	optional ipsc386
+i386/io_emulate.c	standard
+i386/io_map.c		standard
+i386/iopb.c		standard
+i386/kgdb_interface.c   optional mach_kgdb
+i386/kgdb_setjmp.s      optional mach_kgdb
+i386/ktss.c		standard
+i386/ldt.c		standard
+i386/loose_ends.c	standard
+i386/mp_desc.c		optional (cpus > 1)
+i386/net_filter.c	standard
+i386/ntoh.s		standard
+i386/pcb.c		standard
+i386/phys.c		standard
+i386/pic.c		optional at386
+i386/pic.c		optional ipsc386
+i386/i386_rpc.c		standard
+i386/rtclock.c		optional at386
+i386/rtclock.c		optional ipsc386
+i386/kgdb_setjmp.s	optional mach_kgdb
+i386/spl.s		optional at386
+i386/spl.s		optional ipsc386
+i386/trap.c		standard
+i386/user_ldt.c		standard
+
+i386/AT386/autoconf.c	optional at386
+i386/AT386/bbclock.c	optional at386
+i386/AT386/blit.c	optional blit device-driver |${FORCE_VOLATILE}
+i386/AT386/bios_label.c	optional hd 
+i386/AT386/bios_label.c	optional scsi 
+i386/AT386/vga.c	optional vga device-driver
+i386/AT386/ET4000.c	optional vga device-driver
+i386/AT386/PVGA1A.c	optional vga device-driver
+i386/AT386/S3.c		optional vga device-driver
+i386/AT386/com.c	optional com device-driver
+i386/AT386/conf.c	optional at386
+i386/AT386/eisa.c	optional eisa
+i386/AT386/fd.c		optional fd device-driver
+i386/AT386/hd.c		optional hd
+i386/AT386/himem.c	optional himem
+i386/AT386/hbaconf.c	optional hba device-driver
+i386/AT386/adsl.c	optional adsl device-driver
+i386/AT386/if_3c501.c	optional at3c501 device-driver
+# vvv MITCHEM vvv #
+i386/AT386/if_ne.c	optional ne device-driver
+# ^^^ MITCHEM ^^^ #
+i386/AT386/if_fta.c	optional fta device-driver
+i386/AT386/if_tu.c	optional tu device-driver
+i386/AT386/if_ns8390.c	optional ns8390 device-driver
+i386/AT386/cdli_ns8390.c	optional cdli cdli8390 device-driver
+i386/AT386/if_par.c	optional par device-driver
+i386/AT386/if_pc586.c	optional pc586 device-driver |${VOLATILE}
+i386/kkt/if_kkt.c	optional kkt device-driver
+i386/AT386/if_wd8003.c	optional wd8003 device-driver
+i386/AT386/iopl.c	optional at386
+adsl_driver.o		optional adsl device-driver
+i386/AT386/kd.c		optional at386
+i386/AT386/kdasm.s	optional at386
+i386/AT386/kd_event.c	optional at386
+i386/AT386/kd_mouse.c	optional at386
+i386/AT386/kd_queue.c	optional at386
+i386/AT386/lpr.c	optional lpr device-driver
+i386/AT386/model_dep.c	optional at386
+i386/AT386/mp/mp.c	optional cbus
+i386/AT386/mp/mp.c	optional mbus
+i386/AT386/mp/mp.c	optional mp_v1_1
+i386/AT386/mp/mp_v1_1.c	optional mp_v1_1
+i386/AT386/mp/slave_boot.s	optional mp_v1_1
+i386/AT386/mp/slave_boot.s	optional cbus
+i386/AT386/mp/slave_boot.s	optional mbus
+i386/AT386/pic_isa.c	optional at386
+i386/AT386/physmem.c	optional physmem device-driver
+i386/AT386/qd.c		optional qd device-driver
+i386/AT386/wt.c		optional wt device-driver
+
+i386/pci/dma_map.c	optional pci device-driver
+i386/pci/i386_pci.c	optional pci device-driver
+i386/pci/pci_config.c	optional pci device-driver
+i386/pci/pcibios.c	optional pci device-driver
+
+i386/kkt/kkt.c		optional norma_scsi device-driver
+
+i386orc/ec.c		optional ec device-driver
+i386orc/evc1.c		optional evc device-driver
+i386orc/evc1font.c	optional evc device-driver
+
+i386ipsc/autoconf.c	optional ipsc386
+i386ipsc/conf.c		optional ipsc386
+i386ipsc/dcm_input.c	optional dcm device-driver |${FORCE_VOLATILE}
+i386ipsc/dcm_output.c	optional dcm device-driver |${FORCE_VOLATILE}
+i386ipsc/dcm_route.s	optional dcm device-driver
+i386ipsc/iopl.c		optional ipsc386
+i386ipsc/led.c		optional ipsc386 device-driver |${FORCE_VOLATILE}
+i386ipsc/model_dep.c	optional ipsc386
+i386ipsc/pic_ipsc.c	optional ipsc386
+# sd is qualified by ipsc386 because of name clash with SQT driver
+i386ipsc/sd.c		optional sd ipsc386 device-driver |${FORCE_VOLATILE}
+i386ipsc/sdintr.c	optional sd ipsc386 device-driver |${FORCE_VOLATILE}
+i386ipsc/esp_dma.c	optional esp ipsc386 device-driver |${FORCE_VOLATILE}
+i386ipsc/disk_label.c	optional esp ipsc386 device-driver |${FORCE_VOLATILE}
+
+i386ipsc/cnp/if_cnp.c	optional cnp device-driver
+i386ipsc/md.c		optional md device-driver
+
+ipsc/bootenv.c		optional ipsc386
+ipsc/cubestart.c	optional ipsc386
+ipsc/bbclock.c		optional ipsc386
+ipsc/dev_forward_name.c	optional ipsc386 norma_device
+ipsc/usm.c		optional usm device-driver |${FORCE_VOLATILE}
+
+i386/AT386/at386_scsi.c	optional scsi device-driver
+# CYCTM Free-Running Clock Driver
+i386/AT386/cyctm05.c	optional cyctm device-driver
+
+kern/etap_map.c		optional etap device-driver
+
+scsi/adapters/scsi_hba_hdw.c	optional hba device-driver
+scsi/adapters/scsi_aha15_hdw.c	optional aha device-driver
+scsi/adapters/scsi_aha17_hdw.c	optional eaha device-driver
+scsi/adapters/scsi_53C90_hdw.c	optional esp ipsc386 device-driver
+scsi/adapters/scsi_53C810_hdw.c	optional ncr810 device-driver
+scsi/adapters/scsi_53C825_hdw.c	optional ncr825 device-driver
+scsi/rz.c		optional scsi device-driver
+scsi/rz_audio.c		optional scsi device-driver
+scsi/rz_cpu.c		optional scsi device-driver
+scsi/rz_disk.c		optional scsi device-driver
+scsi/rz_disk_bbr.c	optional scsi device-driver
+scsi/rz_host.c		optional scsi device-driver
+scsi/rz_labels.c	optional scsi device-driver
+scsi/rz_tape.c		optional scsi device-driver
+scsi/scsi.c		optional scsi device-driver
+scsi/scsi_alldevs.c	optional scsi device-driver
+scsi/scsi_comm.c	optional scsi2 device-driver
+scsi/scsi_cpu.c		optional scsi device-driver
+scsi/scsi_disk.c	optional scsi device-driver
+scsi/scsi_jukebox.c	optional scsi2 device-driver
+scsi/scsi_optical.c	optional scsi2 device-driver
+scsi/scsi_printer.c	optional scsi device-driver
+scsi/scsi_rom.c		optional scsi device-driver
+scsi/scsi_scanner.c	optional scsi2 device-driver
+scsi/scsi_tape.c	optional scsi device-driver
+scsi/scsi_worm.c	optional scsi device-driver
+scsi/scsit.c		optional scsi device-driver
+scsi/if_sce.c		optional sce device-driver
+scsi/scsi_info.c	optional scsiinfo device-driver
+
+i386/AT386/sound/adlib_card.c	optional sb device-driver
+i386/AT386/sound/audio.c	optional sb device-driver
+i386/AT386/sound/dev_table.c	optional sb device-driver
+i386/AT386/sound/dmabuf.c	optional sb device-driver
+i386/AT386/sound/midi_synth.c	optional sb device-driver
+i386/AT386/sound/midibuf.c	optional sb device-driver
+i386/AT386/sound/opl3.c		optional sb device-driver
+i386/AT386/sound/patmgr.c	optional sb device-driver
+i386/AT386/sound/sb16_dsp.c	optional sb device-driver
+i386/AT386/sound/sb16_midi.c	optional sb device-driver
+i386/AT386/sound/sb_card.c	optional sb device-driver
+i386/AT386/sound/sb_dsp.c	optional sb device-driver
+i386/AT386/sound/sb_midi.c	optional sb device-driver
+i386/AT386/sound/sb_mixer.c	optional sb device-driver
+i386/AT386/sound/seq_manager.c	optional sb device-driver
+i386/AT386/sound/sound_switch.c	optional sb device-driver
+i386/AT386/sound/soundcard.c	optional sb device-driver
+i386/AT386/sound/sys_timer.c	optional sb device-driver
+
+sqt/_boot.s		optional symmetry ordered
+sqt/autoconf.c		optional symmetry
+sqt/bbclock.c		optional symmetry
+sqt/consio.c		optional symmetry
+sqt/interrupt.s		optional symmetry
+sqt/memory.c		optional symmetry
+sqt/misc.s		optional symmetry
+sqt/model_dep.c		optional symmetry
+sqt/mutex.s		optional symmetry
+sqt/rtclock.c		optional symmetry
+sqt/sema.c		optional symmetry
+sqt/setconf.c		optional symmetry
+sqt/slic.c		optional symmetry
+sqt/spl.s		optional symmetry
+sqt/stubs.c		optional symmetry
+
+sqtconf/conf.c		optional symmetry
+sqtconf/conf_co.c	optional symmetry
+sqtconf/conf_if_se.c	optional se
+sqtconf/conf_led.c	optional symmetry
+sqtconf/conf_sd.c	optional sd symmetry
+sqtconf/conf_vec.c	optional symmetry
+sqtconf/conf_zd.c	optional zd
+sqtconf/sqtparam.c	optional symmetry
+
+sqtsec/co.c		optional sec
+sqtsec/if_se.c		optional se
+# sd is qualified by symmetry because of name clash with iPSC driver
+sqtsec/sd.c		optional sd symmetry
+sqtsec/sec.c		optional sec
+
+sqtzdc/zd.c		optional zd
+sqtzdc/zdinit.c		optional zd
+
+profiling/i386/profile-md.c	optional gprof profiling-routine
+profiling/i386/profile-asm.s	optional gprof profiling-routine
+profiling/profile-kgmon.c	optional gprof profiling-routine
+profiling/profile-mk.c		optional gprof profiling-routine
+#
+# Dummy devices for now
+OPTIONS/ln		optional ln
+OPTIONS/eisa		optional eisa
+OPTIONS/himem		optional himem
+OPTIONS/ec		optional ec
+OPTIONS/hi_res_clock	optional hi_res_clock

@@ -1,0 +1,19 @@
+The IPX support in the Linux kernel has two modes of operation:
+With and without the full internal IPX network. For all normal
+operations, you do not need the full internal IPX network.
+
+The full internal IPX network enables you to allocate sockets on
+different virtual nodes of the internal network. This is done by
+evaluating the field sipx_node of the socket address given to the bind
+call. So applications should always initialize the node field to 0
+when binding a socket on the primary network. In this case the socket
+is assigned the default node that has been given to the kernel when
+the internal network was created.
+By enabling the full internal IPX network the cross-forwarding of
+packets targeted at 'special' sockets to sockets listening on the
+primary network is disabled. This might break existing applications,
+especially RIP/SAP daemons. A RIP/SAP daemon that works well with
+the full internal net can be found on ftp.gwdg.de:/pub/linux/misc/ncpfs.
+
+If you want the full internal network, please uncomment the correspondig
+#define in line 19 of include/net/ipx.h

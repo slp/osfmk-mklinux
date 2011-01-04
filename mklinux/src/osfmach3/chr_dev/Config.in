@@ -1,0 +1,80 @@
+# Copyright (c) 1991-1998 Open Software Foundation, Inc. 
+#  
+# 
+# 
+# MkLinux
+
+#
+# Character device configuration
+#
+mainmenu_option next_comment
+comment 'Character devices'
+
+tristate 'Standard/generic serial support' CONFIG_SERIAL
+#bool 'Digiboard PC/Xx Support' CONFIG_DIGI
+#tristate 'Cyclades async mux support' CONFIG_CYCLADES
+#bool 'Stallion multiport serial support' CONFIG_STALDRV
+#if [ "$CONFIG_STALDRV" = "y" ]; then
+#  tristate '  Stallion EasyIO or EC8/32 support' CONFIG_STALLION
+#  tristate '  Stallion EC8/64, ONboard, Brumby support' CONFIG_ISTALLION
+#fi
+#tristate 'SDL RISCom/8 card support' CONFIG_RISCOM8
+tristate 'Parallel printer support' CONFIG_PRINTER
+
+
+bool 'Mouse Support (not serial mice)' CONFIG_MOUSE
+#if [ "$CONFIG_MOUSE" = "y" ]; then
+#	tristate 'ATIXL busmouse support' CONFIG_ATIXL_BUSMOUSE
+#	tristate 'Logitech busmouse support' CONFIG_BUSMOUSE
+#	tristate 'Microsoft busmouse support' CONFIG_MS_BUSMOUSE
+#	tristate 'PS/2 mouse (aka "auxiliary device") support' CONFIG_PSMOUSE
+#	if [ "$CONFIG_PSMOUSE" != "n" ]; then
+#	  bool 'C&T 82C710 mouse port support (as on TI Travelmate)' CONFIG_82C710_MOUSE
+#	fi
+#fi
+
+bool 'Support for user misc device modules' CONFIG_UMISC
+
+#bool 'QIC-02 tape support' CONFIG_QIC02_TAPE
+#if [ "$CONFIG_QIC02_TAPE" = "y" ]; then
+#  bool 'Do you want runtime configuration for QIC-02' CONFIG_QIC02_DYNCONF
+#  if [ "$CONFIG_QIC02_DYNCONF" != "y" ]; then
+#    comment 'Edit configuration parameters in ./include/linux/tpqic02.h!'
+#  else
+#    comment 'Setting runtime QIC-02 configuration is done with qic02conf'
+#    comment 'from the tpqic02-support package.  It is available at'
+#    comment 'ftp://titus.cfw.com/pub/Linux/util/'
+#fi
+#fi
+
+#tristate 'Ftape (QIC-80/Travan) support' CONFIG_FTAPE
+#if [ "$CONFIG_FTAPE" != "n" ]; then
+#  comment 'Set IObase/IRQ/DMA for ftape in ./drivers/char/ftape/Makefile'
+#fi
+
+#bool 'Advanced Power Management BIOS support' CONFIG_APM
+#if [ "$CONFIG_APM" = "y" ]; then
+#  bool '   Ignore USER SUSPEND' CONFIG_APM_IGNORE_USER_SUSPEND
+#  bool '   Enable PM at boot time' CONFIG_APM_DO_ENABLE
+#  bool '   Make CPU Idle calls when idle' CONFIG_APM_CPU_IDLE
+#  bool '   Enable console blanking using APM' CONFIG_APM_DISPLAY_BLANK
+#  bool '   Power off on shutdown' CONFIG_APM_POWER_OFF
+#fi
+#bool 'Watchdog Timer Support'	CONFIG_WATCHDOG
+#if [ "$CONFIG_WATCHDOG" != "n" ]; then
+#  bool '   Disable watchdog shutdown on close' CONFIG_WATCHDOG_NOWAYOUT
+#  tristate '   WDT Watchdog timer' CONFIG_WDT
+#  if [ "$CONFIG_WDT" != "n" ]; then
+#     bool '       WDT501 features' CONFIG_WDT_501
+#     if [ "$CONFIG_WDT_501" = "y" ]; then
+#         bool '       Fan Tachometer' CONFIG_WDT_501_FAN
+#     fi
+#  fi
+#  else
+#  tristate '   Software Watchdog' CONFIG_SOFT_WATCHDOG
+#  tristate '   Berkshire Products PC Watchdog' CONFIG_PCWATCHDOG
+#fi
+#bool 'Enhanced Real Time Clock Support' CONFIG_RTC
+endmenu
+
+define_bool CONFIG_CHR_DEV_ST y

@@ -1,0 +1,100 @@
+comment 'SCSI support type (disk, tape, CD-ROM)'
+
+dep_tristate 'SCSI disk support' CONFIG_BLK_DEV_SD $CONFIG_SCSI
+dep_tristate 'SCSI tape support' CONFIG_CHR_DEV_ST $CONFIG_SCSI
+dep_tristate 'SCSI CD-ROM support' CONFIG_BLK_DEV_SR $CONFIG_SCSI
+dep_tristate 'SCSI generic support' CONFIG_CHR_DEV_SG $CONFIG_SCSI
+
+comment 'Some SCSI devices (e.g. CD jukebox) support multiple LUNs'
+
+bool 'Probe all LUNs on each SCSI device' CONFIG_SCSI_MULTI_LUN
+
+bool 'Verbose SCSI error reporting (kernel size +=12K)' CONFIG_SCSI_CONSTANTS
+
+mainmenu_option next_comment
+comment 'SCSI low-level drivers'
+
+dep_tristate '7000FASST SCSI support' CONFIG_SCSI_7000FASST $CONFIG_SCSI
+dep_tristate 'Adaptec AHA152X/2825 support' CONFIG_SCSI_AHA152X $CONFIG_SCSI
+dep_tristate 'Adaptec AHA1542 support' CONFIG_SCSI_AHA1542 $CONFIG_SCSI
+dep_tristate 'Adaptec AHA1740 support' CONFIG_SCSI_AHA1740 $CONFIG_SCSI
+dep_tristate 'Adaptec AIC7xxx support' CONFIG_SCSI_AIC7XXX $CONFIG_SCSI
+if [ "$CONFIG_SCSI_AIC7XXX" != "n" ]; then
+    bool '   Enable tagged command queueing' CONFIG_AIC7XXX_TAGGED_QUEUEING Y
+    bool '   Override driver defaults for commands per LUN' CONFIG_OVERRIDE_CMDS N
+    if [ "$CONFIG_OVERRIDE_CMDS" != "n" ]; then
+      int  '   Maximum number of commands per LUN' CONFIG_AIC7XXX_CMDS_PER_LUN 8
+    fi
+    bool '   Enable SCB paging' CONFIG_AIC7XXX_PAGE_ENABLE N
+    bool '   Collect statistics to report in /proc' CONFIG_AIC7XXX_PROC_STATS N
+    int  '   Delay in seconds after SCSI bus reset' CONFIG_AIC7XXX_RESET_DELAY 15
+fi
+dep_tristate 'AdvanSys SCSI support' CONFIG_SCSI_ADVANSYS $CONFIG_SCSI
+dep_tristate 'Always IN2000 SCSI support' CONFIG_SCSI_IN2000 $CONFIG_SCSI
+dep_tristate 'AM53/79C974 PCI SCSI support' CONFIG_SCSI_AM53C974 $CONFIG_SCSI
+dep_tristate 'BusLogic SCSI support' CONFIG_SCSI_BUSLOGIC $CONFIG_SCSI
+if [ "$CONFIG_SCSI_BUSLOGIC" != "n" ]; then
+    bool '  Omit FlashPoint support' CONFIG_SCSI_OMIT_FLASHPOINT
+fi
+dep_tristate 'DTC3180/3280 SCSI support' CONFIG_SCSI_DTC3280 $CONFIG_SCSI
+dep_tristate 'EATA-DMA (DPT, NEC, AT&T, SNI, AST, Olivetti, Alphatronix) support' CONFIG_SCSI_EATA_DMA $CONFIG_SCSI
+dep_tristate 'EATA-PIO (old DPT PM2001, PM2012A) support' CONFIG_SCSI_EATA_PIO $CONFIG_SCSI
+dep_tristate 'EATA ISA/EISA/PCI (DPT and generic EATA/DMA-compliant boards) support' CONFIG_SCSI_EATA $CONFIG_SCSI
+  if [ "$CONFIG_SCSI_EATA" != "n" ]; then
+    bool '  enable tagged command queueing' CONFIG_SCSI_EATA_TAGGED_QUEUE
+    bool '  enable elevator sorting' CONFIG_SCSI_EATA_LINKED_COMMANDS
+    int  '  maximum number of queued commands' CONFIG_SCSI_EATA_MAX_TAGS 16
+  fi
+dep_tristate 'Future Domain 16xx SCSI support' CONFIG_SCSI_FUTURE_DOMAIN $CONFIG_SCSI
+dep_tristate 'Generic NCR5380/53c400 SCSI support' CONFIG_SCSI_GENERIC_NCR5380 $CONFIG_SCSI
+if [ "$CONFIG_SCSI_GENERIC_NCR5380" != "n" ]; then
+	bool '   Enable NCR53c400 extensions' CONFIG_SCSI_GENERIC_NCR53C400
+	choice 'NCR5380/53c400 mapping method (use Port for T130B)' \
+		"Port CONFIG_SCSI_G_NCR5380_PORT \
+		Memory CONFIG_SCSI_G_NCR5380_MEM" Port
+fi
+dep_tristate 'NCR53c406a SCSI support' CONFIG_SCSI_NCR53C406A $CONFIG_SCSI
+if [ "$CONFIG_PCI" = "y" ]; then
+  dep_tristate 'NCR53c7,8xx SCSI support'  CONFIG_SCSI_NCR53C7xx $CONFIG_SCSI
+  if [ "$CONFIG_SCSI_NCR53C7xx" != "n" ]; then
+    bool '   always negotiate synchronous transfers' CONFIG_SCSI_NCR53C7xx_sync
+    bool '   allow FAST-SCSI [10MHz]' CONFIG_SCSI_NCR53C7xx_FAST
+    bool '   allow DISCONNECT' CONFIG_SCSI_NCR53C7xx_DISCONNECT
+  fi
+fi
+if [ "$CONFIG_PCI" = "y" -a "$CONFIG_SCSI_NCR53C7xx" != "y" ]; then
+  dep_tristate 'NCR53C8XX SCSI support' CONFIG_SCSI_NCR53C8XX $CONFIG_SCSI
+  if [ "$CONFIG_SCSI_NCR53C8XX" != "n" ]; then
+    bool '  detect and read serial NVRAMs' CONFIG_SCSI_NCR53C8XX_NVRAM_DETECT
+    bool '  enable tagged command queueing' CONFIG_SCSI_NCR53C8XX_TAGGED_QUEUE
+    bool '  use normal IO' CONFIG_SCSI_NCR53C8XX_IOMAPPED
+    int  '  maximum number of queued commands' CONFIG_SCSI_NCR53C8XX_MAX_TAGS 4
+    int  '  synchronous transfers frequency in MHz' CONFIG_SCSI_NCR53C8XX_SYNC 5
+    if [ "$CONFIG_SCSI_NCR53C8XX_TAGGED_QUEUE" != "y" ]; then
+      bool '  not allow targets to disconnect' CONFIG_SCSI_NCR53C8XX_NO_DISCONNECT
+    fi
+    if [ "$CONFIG_EXPERIMENTAL" = "y" ]; then
+      bool '  assume boards are SYMBIOS compatible' CONFIG_SCSI_NCR53C8XX_SYMBIOS_COMPAT
+    fi
+  fi
+fi
+dep_tristate 'IOMEGA Parallel Port ZIP drive SCSI support' CONFIG_SCSI_PPA $CONFIG_SCSI
+dep_tristate 'PAS16 SCSI support' CONFIG_SCSI_PAS16 $CONFIG_SCSI
+dep_tristate 'Qlogic FAS SCSI support' CONFIG_SCSI_QLOGIC_FAS $CONFIG_SCSI
+if [ "$CONFIG_PCI" = "y" ]; then
+  dep_tristate 'Qlogic ISP SCSI support' CONFIG_SCSI_QLOGIC_ISP $CONFIG_SCSI
+fi
+dep_tristate 'Seagate ST-02 and Future Domain TMC-8xx SCSI support' CONFIG_SCSI_SEAGATE $CONFIG_SCSI
+if [ "$CONFIG_PCI" = "y" -a "$CONFIG_SCSI_AM53C974" != "y" ]; then
+  dep_tristate 'Tekram DC-390(T) SCSI support' CONFIG_SCSI_DC390T $CONFIG_SCSI
+fi
+dep_tristate 'Trantor T128/T128F/T228 SCSI support' CONFIG_SCSI_T128 $CONFIG_SCSI
+dep_tristate 'UltraStor 14F/34F support' CONFIG_SCSI_U14_34F $CONFIG_SCSI
+  if [ "$CONFIG_SCSI_U14_34F" != "n" ]; then
+    bool '  enable elevator sorting' CONFIG_SCSI_U14_34F_LINKED_COMMANDS
+    int  '  maximum number of queued commands' CONFIG_SCSI_U14_34F_MAX_TAGS 8
+  fi
+dep_tristate 'UltraStor SCSI support' CONFIG_SCSI_ULTRASTOR $CONFIG_SCSI
+dep_tristate 'GDT SCSI Disk Array Controller support' CONFIG_SCSI_GDTH $CONFIG_SCSI
+#dep_tristate 'SCSI debugging host adapter' CONFIG_SCSI_DEBUG $CONFIG_SCSI
+endmenu

@@ -1,0 +1,1966 @@
+#include "ppc_asm.tmpl"
+#include "ppc_defs.h"
+#include <linux/sys.h>
+#include <linux/errno.h>
+
+#define SYNC() \
+	isync; \
+	sync
+
+/* #define TLB_STATS /* Trace TLB exceptions */
+
+/* Keep track of low-level exceptions - rather crude, but informative */	
+#define STATS
+
+/*
+ * Increment a [64 bit] statistic counter
+ * Uses R2, R3
+ */
+#define BUMP(ctr) \
+	lis	r2,ctr@h; \
+	ori	r2,r2,ctr@l; \
+	lwz	r3,4(r2); \
+	addic	r3,r3,1; \
+	stw	r3,4(r2); \
+	lwz	r3,0(r2); \
+	addze	r3,r3; \
+	stw	r3,0(r2)
+
+/* The same as 'BUMP' but running unmapped (TLB code) */	
+#define BUMP_UNMAPPED(ctr) \
+	mfspr	r0,XER; \
+	lis	r2,ctr@h; \
+	ori	r2,r2,ctr@l; \
+	lis	r3,0xF000; \
+	andc	r2,r2,r3; \
+	lwz	r3,4(r2); \
+	addic	r3,r3,1; \
+	stw	r3,4(r2); \
+	lwz	r3,0(r2); \
+	addze	r3,r3; \
+	mtspr	XER,r0; \
+	stw	r3,0(r2)
+
+/* These macros can be used to generate very raw traces of low-level */
+/* operations (where printf, etc. can't help).  All they provide is */
+/* some after-the-fact documentation of what took place.  Since [in */
+/* most instances] they have no registers to work with, they use the */
+/* hardware "special" registers SPRx for storage.  Because of this, */
+/* defining more than one of them simultaneously will yield incorrect */
+/* results and a non-functional system.  Note: the trick here is to */
+/* gather some data without disturbing anything - Heisenberg are you watching? */
+
+/* CAUTION! Don't turn on more than one of these at once! */	
+/* #define DO_TRAP_TRACE  /* */
+/* #define DO_TLB_TRACE   /* */
+/* #define DO_RFI_TRACE   /* */
+
+#ifdef DO_RFI_TRACE
+#define DO_RFI_TRACE_UNMAPPED(mark) \
+	mtspr	SPR0,r1; \
+	mtspr	SPR1,r2; \
+	mtspr	SPR2,r3; \
+	mfcr	r3; \
+	mtspr	SPR3,r3; \
+	lis	r1,_RFI_ptr@h; \
+	ori	r1,r1,_RFI_ptr@l; \
+	lis	r3,0xF000; \
+	andc	r1,r1,r3; \
+	lwz	r1,0(r1); \
+	andc	r1,r1,r3; \
+	subi	r1,r1,4; \
+	lis	r2,(mark>>16); \
+	ori	r2,r2,(mark&0xFFFF); \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR0; \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR1; \
+	stwu	r2,4(r1); \
+	addi	r1,r1,4+4; \
+	lis	r2,_RFI_ptr@h; \
+	ori	r2,r2,_RFI_ptr@l; \
+	andc	r2,r2,r3; \
+	stw	r1,0(r2); \
+	mfspr	r3,SPR3; \
+	mtcrf	0xFF,r3; \
+	mfspr	r1,SPR0; \
+	mfspr	r2,SPR1; \
+	mfspr	r3,SPR2
+#define DO_RFI_TRACE_MAPPED(mark) \
+	mtspr	SPR0,r1; \
+	mtspr	SPR1,r2; \
+	mtspr	SPR2,r3; \
+	mfcr	r3; \
+	mtspr	SPR3,r3; \
+	lis	r1,_RFI_ptr@h; \
+	ori	r1,r1,_RFI_ptr@l; \
+	lwz	r1,0(r1); \
+	lis	r3,0x9000; \
+	or	r1,r1,r3; \
+	subi	r1,r1,4; \
+	lis	r2,(mark>>16); \
+	ori	r2,r2,(mark&0xFFFF); \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR0; \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR1; \
+	stwu	r2,4(r1); \
+	addi	r1,r1,4+4; \
+	lis	r2,_RFI_ptr@h; \
+	ori	r2,r2,_RFI_ptr@l; \
+	stw	r1,0(r2); \
+	mfspr	r3,SPR3; \
+	mtcrf	0xFF,r3; \
+	mfspr	r1,SPR0; \
+	mfspr	r2,SPR1; \
+	mfspr	r3,SPR2
+#else
+#define DO_RFI_TRACE_UNMAPPED(mark)
+#define DO_RFI_TRACE_MAPPED(mark)
+#endif
+
+#ifdef DO_TRAP_TRACE
+#define DEFAULT_TRAP(offset) \
+	mtspr	SPR0,r1; \
+	mtspr	SPR1,r2; \
+	mtspr	SPR2,r3; \
+	lis	r1,_TRAP_ptr@h; \
+	ori	r1,r1,_TRAP_ptr@l; \
+	lis	r3,0xF000; \
+	andc	r1,r1,r3; \
+	lwz	r1,0(r1); \
+	andc	r1,r1,r3; \
+	subi	r1,r1,4; \
+	lis	r2,0xCACA; \
+	ori	r2,r2,offset; \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR0; \
+	stwu	r2,4(r1); \
+	mfspr	r2,SRR1; \
+	stwu	r2,4(r1); \
+	mfspr	r2,SPR0; \
+	stwu	r2,4(r1); \
+	addi	r1,r1,4; \
+	lis	r2,_TRAP_ptr@h; \
+	ori	r2,r2,_TRAP_ptr@l; \
+	andc	r2,r2,r3; \
+	stw	r1,0(r2); \
+	mfspr	r1,SPR0; \
+	mfspr	r2,SPR1; \
+	mfspr	r3,SPR2; \
+	li	r13,0; \
+	ori	r13,r13,HID0_ICE; \
+	mtspr	HID0,r13; \
+	lis	r13,0xFFF00000>>16; \
+	ori	r13,r13,offset; \
+	mtlr	r13; \
+	b	hang
+#define TRACE_TRAP(offset) \
+	mtspr	SPR0,r1; \
+	mtspr	SPR1,r2; \
+	mtspr	SPR2,r3; \
+	mfcr	r3; \
+	mtspr	SPR3,r3; \
+	lis	r1,_TRAP_ptr@h; \
+	ori	r1,r1,_TRAP_ptr@l; \
+	lis	r3,0xF000; \
+	andc	r1,r1,r3; \
+	lwz	r1,0(r1); \
+	andc	r1,r1,r3; \
+	subi	r1,r1,4; \
+	lis	r2,0xCABB; \
+	ori	r2,r2,offset; \
+	stwu	r2,4(r1); \
+	dcbst	0,r1; \
+	mfspr	r2,SRR0; \
+	stwu	r2,4(r1); \
+	dcbst	0,r1; \
+	mfspr	r2,SRR1; \
+	stwu	r2,4(r1); \
+	dcbst	0,r1; \
+	li	r2,offset; \
+	cmpi	0,r2,0x0C00; \
+	beq	01f; \
+	cmpi	0,r2,0x0300; \
+	beq	00f; \
+	cmpi	0,r2,0x0400; \
+	beq	00f; \
+	mfspr	r2,SPR0; \
+	b	02f; \
+00:	mfspr	r2,DAR; \
+	b	02f; \
+01:	mr	r2,r0; \
+02:	stwu	r2,4(r1); \
+	dcbst	0,r1; \
+	addi	r1,r1,4; \
+	mflr	r2; \
+	stw	r2,0(r1); \
+	bl	check_trace; \
+	lwz	r2,0(r1); \
+	mtlr	r2; \
+02:	lis	r2,_TRAP_ptr@h; \
+	ori	r2,r2,_TRAP_ptr@l; \
+	oris	r1,r1,0x9000; \
+	cmp	0,r1,r2; \
+	bne	00f; \
+	lis	r1,_TRAP_TRACE@h; \
+	ori	r1,r1,_TRAP_TRACE@l; \
+00:	lis	r3,0xF000; \
+	andc	r2,r2,r3; \
+	stw	r1,0(r2); \
+	mfspr	r1,SPR0; \
+	mfspr	r2,SPR1; \
+	mfspr	r3,SPR3; \
+	mtcrf	0xFF,r3; \
+	mfspr	r3,SPR2
+#else
+#define DEFAULT_TRAP(offset) \
+	li	r13,0; \
+	ori	r13,r13,HID0_ICE; \
+	mtspr	HID0,r13; \
+	lis	r13,0xFFF00000>>16; \
+	ori	r13,r13,offset; \
+	mtlr	r13; \
+	blr
+#define TRACE_TRAP(offset)	
+#endif
+
+#define DATA_CACHE_OFF() \
+	mfspr	r2,HID0; \
+	li	r3,0; \
+	ori	r3,r3,HID0_DCE; \
+	andc	r2,r2,r3; \
+	mtspr	HID0,r2;
+
+#define DATA_CACHE_ON() \
+	mfspr	r2,HID0; \
+	ori	r2,r2,HID0_DCE; \
+	mtspr	HID0,r2;
+
+/* This instruction is not implemented on the PPC 603 */
+#define tlbia \
+	li	r4,64; \
+	mtspr	CTR,r4; \
+	lis	r4,0x9000; \
+0:	tlbie	r4; \
+	addi	r4,r4,0x1000; \
+	bdnz	0b
+
+/* Validate kernel stack - check for overflow */
+#define CHECK_STACK()
+#define _CHECK_STACK() \
+	mtspr	SPR0,r3; \
+	lis	r2,current_set@ha; \
+	lwz	r2,current_set@l(r2); \
+	lwz	r2,KERNEL_STACK_PAGE(r2); \
+	lis	r3,sys_stack@h; \
+	ori	r3,r3,sys_stack@l; \
+	cmpl	0,r1,r3; \
+	ble	02f; \
+	li	r3,0x0FFF; \
+	andc	r2,r2,r3; \
+	andc	r3,r1,r3; \
+	cmp	0,r3,r2; \
+	beq	02f; \
+	mr	r3,r1; \
+	bl	_EXTERN(bad_stack); \
+02:	mfspr	r3,SPR0
+
+/* Save all registers on kernel stack during an exception */	
+#define SAVE_REGS(mark) \
+	subi	r1,r1,INT_FRAME_SIZE+STACK_FRAME_OVERHEAD;	/* Make room for frame */ \
+	stmw	r3,GPR3(r1);	/* Save R3..R31 */ \
+	stw	r3,ORIG_GPR3(r1); \
+	stw	r0,GPR0(r1); \
+	mfspr	r2,SPR0; \
+	stw	r2,GPR1(r1); \
+	mfspr	r2,SPR1; \
+	stw	r2,GPR2(r1); \
+	mfspr	r2,SPR2; \
+	stw	r2,_NIP(r1); \
+	mfspr	r2,SPR3; \
+	stw	r2,_MSR(r1); \
+	mfctr	r2; \
+	stw	r2,_CTR(r1); \
+	mflr	r2; \
+	stw	r2,_LINK(r1); \
+	mfcr	r2; \
+	stw	r2,_CCR(r1); \
+	mfspr	r2,XER; \
+	stw	r2,_XER(r1); \
+	stfd	fr0,FPR0(r1); \
+	stfd	fr1,FPR1(r1); \
+	stfd	fr2,FPR2(r1); \
+	stfd	fr3,FPR3(r1); \
+	mffs	fr0; \
+	stfd	fr0,FPCSR(r1); \
+	lis	r2,_break_lwarx@h; \
+	ori	r2,r2,_break_lwarx@l; \
+	stwcx.	r2,0,r2; \
+	li	r2,0; \
+	stw	r2,RESULT(r1)
+
+#ifdef PPC_DEBUG
+	li	r2,mark;
+	stw	r2,TRAP(r1);
+	lis	r2,0xDEAD;
+	ori	r2,r2,0xDEAD;
+	stw	r2,MARKER(r1);
+#endif  /* PPC_DEBUG */
+
+#define SAVE_PAGE_FAULT_REGS(offset) \
+	mfspr	r2,DAR; \
+	stw	r2,_DAR(r1); \
+	mfspr	r2,DSISR; \
+	stw	r2,_DSISR(r1)
+
+#ifdef PPC_DEBUG
+	mfspr	r2,PVR;			/* Check for 603/603e */
+	srwi	r2,r2,16;
+	cmpi	0,r2,3;			/* 603 */
+	beq	22f;
+	cmpi	0,r2,6;			/* 603e */
+	bne	24f;
+22:	mfspr	r2,HASH1; 		/* Note: these registers exist only on 603 */
+	stw	r2,_HASH1(r1);
+	mfspr	r2,HASH2;
+	stw	r2,_HASH2(r1);
+	mfspr	r2,IMISS;
+	stw	r2,_IMISS(r1);
+	mfspr	r2,DMISS;
+	stw	r2,_DMISS(r1);
+	mfspr	r2,ICMP;
+	stw	r2,_ICMP(r1);
+	mfspr	r2,DCMP;
+	stw	r2,_DCMP(r1);
+24:
+#endif /* PPC_DEBUG */
+	
+#define SAVE_INT_REGS(mark) \
+	mtspr	SPR0,r1;	/* Save current stack pointer */ \
+	mtspr	SPR1,r2;	/* Scratch */ \
+	mfcr	r2; \
+	mtspr	SPR2,r2; \
+	mfspr	r2,SRR1;	/* Interrupt from user/system mode */ \
+	andi.	r2,r2,MSR_PR; \
+	beq+	10f;		/* Jump if system - already have stack */ \
+	mfspr	r2,SPR2;	/* Restore CCR */ \
+	mtcrf	0xFF,r2; \
+	mfspr	r2,SRR0;	/* Preserve interrupt registers */ \
+	mtspr	SPR2,r2; \
+	mfspr	r2,SRR1; \
+	mtspr	SPR3,r2; \
+	lis	r2,05f@h; \
+	ori	r2,r2,05f@l; \
+	mtspr	SRR0,r2; \
+	mfmsr	r2; \
+	ori	r2,r2,MSR_|MSR_DR|MSR_IR; \
+	mtspr	SRR1,r2; \
+	rfi; \
+05:	lis	r2,current_set@ha; \
+	lwz	r2,current_set@l(r2); \
+	mfspr	r1,SPR2; \
+	stw	r1,TSS+LAST_PC(r2); \
+	mfspr	r1,SPR0; \
+	stw	r1,TSS+USER_STACK(r2); \
+	lwz	r1,TSS+KSP(r2); \
+	subi	r1,r1,INT_FRAME_SIZE;	/* Make room for frame */ \
+	stw	r1,TSS+PT_REGS(r2); 	/* Save regs pointer for 'ptrace' */ \
+	lwz	r1,TSS+KSP(r2); \
+	b	20f; \
+10:	mfspr	r2,SPR2;	/* Restore CCR */ \
+	mtcrf	0xFF,r2; \
+	mfspr	r2,SRR0;	/* Preserve interrupt registers */ \
+	mtspr	SPR2,r2; \
+	mfspr	r2,SRR1; \
+	mtspr	SPR3,r2; \
+	lis	r2,20f@h; \
+	ori	r2,r2,20f@l; \
+	mtspr	SRR0,r2; \
+	mfmsr	r2; \
+	ori	r2,r2,MSR_|MSR_DR|MSR_IR; \
+	mtspr	SRR1,r2; \
+	SYNC(); \
+	rfi; \
+20:	SAVE_REGS(mark); \
+	CHECK_STACK()
+
+#define RETURN_FROM_INT(mark) \
+90:	mfmsr	r0;		/* Disable interrupts */ \
+	li	r4,0; \
+	ori	r4,r4,MSR_EE; \
+	andc	r0,r0,r4; \
+	sync; 			/* Some chip revs need this... */ \
+	mtmsr	r0; \
+	lis	r2,intr_count@ha; /* Need to run 'bottom half' */ \
+	lwz	r3,intr_count@l(r2); \
+	cmpi	0,r3,0; \
+	bne	00f; \
+	lis	r4,bh_mask@ha; \
+	lwz	r4,bh_mask@l(r4); \
+	lis	r5,bh_active@ha; \
+	lwz	r5,bh_active@l(r5); \
+	and.	r4,r4,r5; \
+	beq	00f; \
+	addi	r3,r3,1; \
+	stw	r3,intr_count@l(r2); \
+	bl	_EXTERN(_do_bottom_half); \
+	lis	r2,intr_count@ha; \
+	lwz	r3,intr_count@l(r2); \
+	subi	r3,r3,1; \
+	stw	r3,intr_count@l(r2); \
+00:	lis	r3,current_set@ha;	/* need to save kernel stack pointer */ \
+	lwz	r3,current_set@l(r3); \
+	addi	r4,r1,INT_FRAME_SIZE+STACK_FRAME_OVERHEAD;	/* size of frame */ \
+	stw	r4,TSS+KSP(r3); \
+	lwz	r2,_MSR(r1); /* Returning to user mode? */ \
+	andi.	r2,r2,MSR_PR; \
+	beq+	10f;		/* no - no need to mess with stack */ \
+	lwz	r4,STATE(r3);	/* If state != 0, can't run */ \
+	cmpi	0,r4,0; \
+	beq	06f; \
+	bl	_EXTERN(schedule); \
+	b	90b; \
+06:	lwz	r4,COUNTER(r3);	/* Time quantum expired? */ \
+	cmpi	0,r4,0; \
+	bne	07f; \
+	bl	_EXTERN(schedule); \
+	b	90b; \
+07:	lwz	r4,BLOCKED(r3);	/* Check for pending unblocked signals */ \
+	lwz	r5,SIGNAL(r3); \
+	andc.	r0,r5,r4;	/* Lets thru any unblocked */ \
+	beq	10f; \
+	mr	r3,r4; \
+	addi	r4,r1,STACK_FRAME_OVERHEAD; \
+	bl	_EXTERN(do_signal); \
+	b	00b; \
+10:	lwz	r2,_NIP(r1);	/* Restore environment */ \
+	mtspr	SRR0,r2; \
+	lwz	r2,_MSR(r1); \
+	mtspr	SRR1,r2; \
+	lmw	r3,GPR3(r1); \
+	lwz	r2,_CTR(r1); \
+	mtctr	r2; \
+	lwz	r2,_LINK(r1); \
+	mtlr	r2; \
+	lwz	r2,_XER(r1); \
+	mtspr	XER,r2; \
+	lwz	r2,_CCR(r1); \
+	mtcrf	0xFF,r2; \
+	lfd	fr0,FPCSR(r1); \
+	mtfsf	0xFF,fr0; \
+	lfd	fr0,FPR0(r1); \
+	lfd	fr1,FPR1(r1); \
+	lfd	fr2,FPR2(r1); \
+	lfd	fr3,FPR3(r1); \
+	lwz	r0,GPR0(r1); \
+	lwz	r2,GPR2(r1); \
+	lwz	r1,GPR1(r1); \
+	SYNC(); \
+	rfi
+
+/*
+ * Get the 'current' task state pointer (&current.tss) into a register
+ */
+
+#define GET_CURRENT(rs) \
+	lis	rs,current_set@ha; \
+	lwz	rs,current_set@l(rs); \
+	addi	rs,rs,TSS
+
+/*
+ * These FP macros assume that 'rd' has the task pointer.
+ */
+#define SAVE_FP_REGS(rs,mark) \
+	stfd	fr0,TSS_FPR0(rs); \
+	stfd	fr1,TSS_FPR1(rs); \
+	stfd	fr2,TSS_FPR2(rs); \
+	stfd	fr3,TSS_FPR3(rs); \
+	stfd	fr4,TSS_FPR4(rs); \
+	stfd	fr5,TSS_FPR5(rs); \
+	stfd	fr6,TSS_FPR6(rs); \
+	stfd	fr7,TSS_FPR7(rs); \
+	stfd	fr8,TSS_FPR8(rs); \
+	stfd	fr9,TSS_FPR9(rs); \
+	stfd	fr10,TSS_FPR10(rs); \
+	stfd	fr11,TSS_FPR11(rs); \
+	stfd	fr12,TSS_FPR12(rs); \
+	stfd	fr13,TSS_FPR13(rs); \
+	stfd	fr14,TSS_FPR14(rs); \
+	stfd	fr15,TSS_FPR15(rs); \
+	stfd	fr16,TSS_FPR16(rs); \
+	stfd	fr17,TSS_FPR17(rs); \
+	stfd	fr18,TSS_FPR18(rs); \
+	stfd	fr19,TSS_FPR19(rs); \
+	stfd	fr20,TSS_FPR20(rs); \
+	stfd	fr21,TSS_FPR21(rs); \
+	stfd	fr22,TSS_FPR22(rs); \
+	stfd	fr23,TSS_FPR23(rs); \
+	stfd	fr24,TSS_FPR24(rs); \
+	stfd	fr25,TSS_FPR25(rs); \
+	stfd	fr26,TSS_FPR26(rs); \
+	stfd	fr27,TSS_FPR27(rs); \
+	stfd	fr28,TSS_FPR28(rs); \
+	stfd	fr29,TSS_FPR29(rs); \
+	stfd	fr30,TSS_FPR30(rs); \
+	stfd	fr31,TSS_FPR31(rs)
+
+#define RESTORE_FP_REGS(rs,mark) \
+	lis	r3,current_set@ha;	/* need to save kernel stack pointer */ \
+	lwz	r3,current_set@l(rs); \
+	lfd	fr0,TSS_FPR0(rs); \
+	lfd	fr1,TSS_FPR1(rs); \
+	lfd	fr2,TSS_FPR2(rs); \
+	lfd	fr3,TSS_FPR3(rs); \
+	lfd	fr4,TSS_FPR4(rs); \
+	lfd	fr5,TSS_FPR5(rs); \
+	lfd	fr6,TSS_FPR6(rs); \
+	lfd	fr7,TSS_FPR7(rs); \
+	lfd	fr8,TSS_FPR8(rs); \
+	lfd	fr9,TSS_FPR9(rs); \
+	lfd	fr10,TSS_FPR10(rs); \
+	lfd	fr11,TSS_FPR11(rs); \
+	lfd	fr12,TSS_FPR12(rs); \
+	lfd	fr13,TSS_FPR13(rs); \
+	lfd	fr14,TSS_FPR14(rs); \
+	lfd	fr15,TSS_FPR15(rs); \
+	lfd	fr16,TSS_FPR16(rs); \
+	lfd	fr17,TSS_FPR17(rs); \
+	lfd	fr18,TSS_FPR18(rs); \
+	lfd	fr19,TSS_FPR19(rs); \
+	lfd	fr20,TSS_FPR20(rs); \
+	lfd	fr21,TSS_FPR21(rs); \
+	lfd	fr22,TSS_FPR22(rs); \
+	lfd	fr23,TSS_FPR23(rs); \
+	lfd	fr24,TSS_FPR24(rs); \
+	lfd	fr25,TSS_FPR25(rs); \
+	lfd	fr26,TSS_FPR26(rs); \
+	lfd	fr27,TSS_FPR27(rs); \
+	lfd	fr28,TSS_FPR28(rs); \
+	lfd	fr29,TSS_FPR29(rs); \
+	lfd	fr30,TSS_FPR30(rs); \
+	lfd	fr31,TSS_FPR31(rs)
+
+
+_TEXT()
+/*
+ * This code may be executed by a bootstrap process.  If so, the
+ * purpose is to relocate the loaded image to it's final location
+ * in memory.
+ *    R3: End of image
+ *    R4: Start of image - 0x400
+ *   R11: Start of command line string
+ *   R12: End of command line string
+ *   R30: 'BeBx' if this is a BeBox
+ *   R30: 'PreP' if this is an IBM (PreP)
+ *
+ */
+	.globl	_start
+	.globl	_stext
+_stext:
+_start:
+	addi	r4,r4,0x400	/* Point at start of image */
+	li	r5,0		/* Load address */
+	subi	r4,r4,4		/* Adjust for auto-increment */
+	subi	r5,r5,4
+	subi	r3,r3,4
+00:	lwzu	r0,4(r4)	/* Fast move */
+	stwu	r0,4(r5)
+	cmp	0,r3,r4
+	bne	00b
+	li	r5,0x100	/* Actual code starts here */
+	mtlr	r5
+	blr
+
+hang:
+	ori	r0,r0,0
+	b	hang
+
+/*
+ * BeBox CPU #1 vector & code
+ */	
+_ORG(0x0080)
+	.globl	BeBox_CPU1_vector
+BeBox_CPU1_vector:
+	.long	0
+BeBox_CPU1_reset:
+	li	r1,BeBox_CPU1_vector@l
+	li	r2,0
+	stw	r2,0(r1)
+00:	lwz	r2,0(r1)
+	cmpi	0,r2,0
+	bne	10f
+	li	r2,10000
+	mtctr	r2
+02:	nop
+	bdnz	02b
+	b	00b
+10:	mtlr	r1
+	blr	
+	
+_ORG(0x0100)
+
+/* Hard Reset */
+	.globl	HardReset
+HardReset:
+	b	Reset
+
+_ORG(0x0200)
+	b	MachineCheck
+
+_ORG(0x0300)
+	b	DataAccess
+
+_ORG(0x0400)
+	b	InstructionAccess
+
+_ORG(0x0500)
+	b	HardwareInterrupt
+	
+_ORG(0x0600)
+	b	Alignment
+
+_ORG(0x0700)
+	b	ProgramCheck
+
+_ORG(0x0800)
+	b	FloatingPointCheck
+
+/* Decrementer register - ignored for now... */
+_ORG(0x0900)
+/* TRACE_TRAP(0x900) */
+	mtspr	SPR0,r1
+	lis	r1,0x7FFF
+	ori	r1,r1,0xFFFF
+	mtspr	DEC,r1
+	mfspr	r1,SPR0
+#if 0	
+	SYNC
+#endif	
+	rfi
+	
+_ORG(0x0A00)
+	b	IOError
+
+_ORG(0x0B00)
+DEFAULT_TRAP(0x0B00)
+
+/*
+ * System call
+ */
+_ORG(0x0C00)
+	b	SystemCall
+
+_ORG(0x0D00)
+	b	SingleStep
+
+_ORG(0x0E00)
+DEFAULT_TRAP(0x0E00)	
+_ORG(0x0F00)
+DEFAULT_TRAP(0x0F00)	
+
+/*
+ * Handle TLB Miss on an instruction load
+ */
+_ORG(0x1000)
+/* Note: It is *unsafe* to use the TRACE TRAP macro here since there */
+/* could be a 'trace' in progress when the TLB miss occurs.          */
+/* TRACE_TRAP(0x1000) */
+#ifdef TLB_STATS
+	lis	r2,DataLoadTLB_trace_ptr@h
+	ori	r2,r2,DataLoadTLB_trace_ptr@l
+	lis	r3,0xF000
+	andc	r2,r2,r3
+	lwz	r1,0(r2)
+	andc	r1,r1,r3
+	li	r0,0x1000
+	stw	r0,0(r1)
+	mftbu	r0
+	stw	r0,4(r1)
+	mftb	r0
+	stw	r0,8(r1)
+	mfspr	r0,IMISS
+	mfspr	r3,SRR1
+	extrwi	r3,r3,1,14
+	or	r0,r0,r3
+	stw	r0,12(r1)
+	addi	r1,r1,16
+	mfcr	r0
+	cmpl	0,r1,r2
+	blt	00f
+	lis	r1,DataLoadTLB_trace_buf@h
+	ori	r1,r1,DataLoadTLB_trace_buf@l
+	lis	r3,0xF000
+	andc	r1,r1,r3
+00:	mtcrf	0xFF,r0
+	stw	r1,0(r2)
+#endif	
+	b	InstructionTLBMiss
+
+/*
+ * Handle TLB Miss on a data item load
+ */
+_ORG(0x1100)
+/* TRACE_TRAP(0x1100) */
+#ifdef TLB_STATS
+	lis	r2,DataLoadTLB_trace_ptr@h
+	ori	r2,r2,DataLoadTLB_trace_ptr@l
+	lis	r3,0xF000
+	andc	r2,r2,r3
+	lwz	r1,0(r2)
+	andc	r1,r1,r3
+	li	r0,0x1100
+	stw	r0,0(r1)
+	mftbu	r0
+	stw	r0,4(r1)
+	mftb	r0
+	stw	r0,8(r1)
+	mfspr	r0,DMISS
+	mfspr	r3,SRR1
+	extrwi	r3,r3,1,14
+	or	r0,r0,r3
+	stw	r0,12(r1)
+	addi	r1,r1,16
+	mfcr	r0
+	cmpl	0,r1,r2
+	blt	00f
+	lis	r1,DataLoadTLB_trace_buf@h
+	ori	r1,r1,DataLoadTLB_trace_buf@l
+	lis	r3,0xF000
+	andc	r1,r1,r3
+00:	mtcrf	0xFF,r0
+	stw	r1,0(r2)
+	.data
+DataLoadTLB_trace_buf:
+	.space	64*1024*4
+DataLoadTLB_trace_ptr:
+	.long	DataLoadTLB_trace_buf
+	.text
+#endif	
+	b	DataLoadTLBMiss
+
+/*
+ * Handle TLB Miss on a store operation
+ */
+_ORG(0x1200)
+/* TRACE_TRAP(0x1200) */
+#ifdef TLB_STATS
+	lis	r2,DataLoadTLB_trace_ptr@h
+	ori	r2,r2,DataLoadTLB_trace_ptr@l
+	lis	r3,0xF000
+	andc	r2,r2,r3
+	lwz	r1,0(r2)
+	andc	r1,r1,r3
+	li	r0,0x1200
+	stw	r0,0(r1)
+	mftbu	r0
+	stw	r0,4(r1)
+	mftb	r0
+	stw	r0,8(r1)
+	mfspr	r0,DMISS
+	mfspr	r3,SRR1
+	extrwi	r3,r3,1,14
+	or	r0,r0,r3
+	stw	r0,12(r1)
+	addi	r1,r1,16
+	mfcr	r0
+	cmpl	0,r1,r2
+	blt	00f
+	lis	r1,DataLoadTLB_trace_buf@h
+	ori	r1,r1,DataLoadTLB_trace_buf@l
+	lis	r3,0xF000
+	andc	r1,r1,r3
+00:	mtcrf	0xFF,r0
+	stw	r1,0(r2)
+#endif	
+	b	DataStoreTLBMiss
+
+_ORG(0x1300)
+InstructionAddressBreakpoint:
+	DEFAULT_TRAP(0x1300)
+
+_ORG(0x1400)
+SystemManagementInterrupt:
+	DEFAULT_TRAP(0x1400)
+
+_ORG(0x1500)
+
+/*
+ * This space [buffer] is used to forceably flush the data cache when
+ * running in copyback mode.  This is necessary IFF the data cache could
+ * contain instructions for which the instruction cache has stale data.
+ * Since the instruction cache NEVER snoops the data cache, memory must
+ * be made coherent with the data cache to insure that the instruction
+ * cache gets a valid instruction stream.  Note that this flushing is
+ * only performed when switching from system to user mode since this is
+ * the only juncture [as far as the OS goes] where the data cache may
+ * contain instructions, e.g. after a disk read.
+ */
+#define NUM_CACHE_LINES 128*8  /* Big enough for 601 */
+#define CACHE_LINE_SIZE 32 
+cache_flush_buffer:
+	.space	NUM_CACHE_LINES*CACHE_LINE_SIZE	/* CAUTION! these need to match hardware */
+
+#if NUM_CACHE_LINES < 512	
+_ORG(0x4000)
+#endif
+
+
+/*
+ * Hardware reset [actually from bootstrap]
+ * Initialize memory management & call secondary init
+ * Registers initialized by bootstrap:
+ *   R11: Start of command line string
+ *   R12: End of command line string
+ *   R28: Residual data
+ *   R29: Total Memory Size
+ *   R30: 'BeBx' if this is a BeBox
+ */	
+Reset:
+	lis	r7,0xF000		/* To mask upper 4 bits */
+#define IS_BE_BOX	0x42654278	/* 'BeBx' */
+	lis	r1,isBeBox@h
+	ori	r1,r1,isBeBox@l
+	andc	r1,r1,r7
+/* See if this is a CPU other than CPU#1 */
+/* This [currently] happens on the BeBox */
+	lwz	r2,0(r1)
+	cmpi	0,r2,0
+	bne	Reset_BeBox_CPU1
+/* Save machine type indicator */
+	li	r2,0
+	lis	r3,IS_BE_BOX>>16
+	ori	r3,r3,IS_BE_BOX&0xFFFF
+	cmp	0,r30,r3
+	bne	00f
+	li	r2,1
+	mr	r11,r28
+	mr	r12,r29
+	lis	r5,BeBox_CPU1_vector@h
+	ori	r5,r5,BeBox_CPU1_vector@l
+	andc	r5,r5,r7		/* Tell CPU #1 where to go */
+00:	stw	r2,0(r1)
+	stw	r30,4(r1)
+/* Copy argument string */
+	li	r0,0		/* Null terminate string */
+	stb	r0,0(r12)
+	lis	r1,cmd_line@h
+	ori	r1,r1,cmd_line@l
+	andc	r1,r1,r7	/* No MMU yet - need unmapped address */
+	subi	r1,r1,1
+	subi	r11,r11,1
+00:	lbzu	r0,1(r11)
+	cmpi	0,r0,0
+	stbu	r0,1(r1)
+	bne	00b	
+	lis	r1,sys_stack@h
+	ori	r1,r1,sys_stack@l
+	li	r2,0x0FFF	/* Mask stack address down to page boundary */
+	andc	r1,r1,r2
+	subi	r1,r1,INT_FRAME_SIZE+STACK_FRAME_OVERHEAD	/* Padding for first frame */
+	li	r2,0		/* TOC pointer for nanokernel */
+	li	r0,MSR_		/* Make sure FPU enabled */
+	mtmsr	r0
+	lis	r3,_edata@h	/* Clear BSS */
+	ori	r3,r3,_edata@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lis	r4,_end@h
+	ori	r4,r4,_end@l
+	andc	r4,r4,r7	/* make unmapped address */
+	subi	r3,r3,4
+	li	r0,0
+00:	stwu	r0,4(r3)
+	cmp	0,r3,r4
+	blt	00b
+/* Save total memory size (passed from bootstrap) */
+	lis	r3,_TotalMemory@h
+	ori	r3,r3,_TotalMemory@l
+	andc	r3,r3,r7	/* make unmapped address */
+	stw	r29,0(r3)
+/* Copy residual data */
+	lis	r3,_Residual@h
+	ori	r3,r3,_Residual@l
+	andc	r3,r3,r7	/* make unmapped address */
+	mr	r4,r28
+	subi	r3,r3,4
+	subi	r4,r4,4
+	lwz	r5,4(r4)	/* Length of residual data */
+	cmpi	0,r5,0
+	beq	19f
+10:	lwzu	r6,4(r4)
+	stwu	r6,4(r3)
+	addic.	r5,r5,-4
+	bne	10b
+19:	
+/* Flush TLB before turning on MMU */
+	tlbia			/* Clear all TLB entries */
+/* Determine processor type */
+	mfspr	r2,PVR
+	srwi	r2,r2,16
+	cmpi	0,r2,1		/* 601 ? */
+	beq	.Reset_load_601_BAT_registers
+/* Initialize BAT registers */
+	lis	r3,BAT0@h
+	ori	r3,r3,BAT0@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT0U,r0
+	mtspr	DBAT0U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT0L,r0
+	mtspr	DBAT0L,r0
+	lis	r3,BAT1@h
+	ori	r3,r3,BAT1@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT1U,r0
+	mtspr	DBAT1U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT1L,r0
+	mtspr	DBAT1L,r0
+	lis	r3,TMP_BAT2@h
+	ori	r3,r3,TMP_BAT2@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	mtspr	DBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	mtspr	DBAT2L,r0
+#if 0	
+	lis	r3,BAT3@h
+	ori	r3,r3,BAT3@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT3U,r0
+	mtspr	DBAT3U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT3L,r0
+	mtspr	DBAT3L,r0
+#endif	
+	b	.Reset_enable_MMU
+/* Set up BAT registers for 601 */
+.Reset_load_601_BAT_registers:
+/* Initialize BAT registers */
+	lis	r3,BAT0_601@h
+	ori	r3,r3,BAT0_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT0U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT0L,r0
+	lis	r3,BAT1_601@h
+	ori	r3,r3,BAT1_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT1U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT1L,r0
+	lis	r3,TMP_BAT2_601@h
+	ori	r3,r3,TMP_BAT2_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	lis	r3,TMP_BAT3_601@h
+	ori	r3,r3,TMP_BAT3_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT3U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT3L,r0
+/* Now we can turn on the MMU */
+.Reset_enable_MMU:
+/* Clear RAM segment registers */
+	li	r3,0
+	mtsr	SR9,r3
+	mfmsr	r3
+	ori	r3,r3,MSR_DR|MSR_IR
+	mtspr	SRR1,r3
+	lis	r3,10f@h
+	ori	r3,r3,10f@l
+	mtspr	SRR0,r3
+DO_RFI_TRACE_UNMAPPED(0xDEAD0000)	
+	SYNC
+	rfi				/* enables MMU */
+10:	bl	_EXTERN(MMU_init)	/* initialize MMU environment */
+DO_RFI_TRACE_MAPPED(0xDEAD0100)	
+/* Withdraw BAT2->RAM mapping */
+	lis	r7,0xF000		/* To mask upper 4 bits */
+	lis	r3,20f@h
+	ori	r3,r3,20f@l
+	andc	r3,r3,r7	/* make unmapped address */
+	mtspr	SRR0,r3
+	mfmsr	r3
+	li	r4,MSR_DR|MSR_IR
+	andc	r3,r3,r4
+	mtspr	SRR1,r3
+	SYNC
+DO_RFI_TRACE_MAPPED(0xDEAD0200)	
+	SYNC
+	rfi
+20:	
+DO_RFI_TRACE_UNMAPPED(0xDEAD0400)	
+20:	mfspr	r2,PVR
+	srwi	r2,r2,16
+	cmpi	0,r2,1		/* 601 ? */
+	beq	.Reset_load_601_BAT2_registers
+	lis	r3,BAT2@h
+	ori	r3,r3,BAT2@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	mtspr	DBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	mtspr	DBAT2L,r0
+	lis	r3,BAT3@h
+	ori	r3,r3,BAT3@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	mtspr	DBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	mtspr	DBAT2L,r0
+	b	.Reset_load_kernel_context
+/* Set up BAT registers (turned off) for 601 */
+.Reset_load_601_BAT2_registers:
+	lis	r3,BAT2_601@h
+	ori	r3,r3,BAT2_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	lis	r3,BAT3_601@h
+	ori	r3,r3,BAT3_601@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+.Reset_load_kernel_context:
+/* Load up the kernel context */
+	lis	r2,init_task@h
+	ori	r2,r2,init_task@l
+	addi	r2,r2,TSS
+	andc	r2,r2,r7	/* make unmapped address */
+	SYNC			/* Force all PTE updates to finish */
+	tlbia			/* Clear all TLB entries */
+	lis	r3,_SDR1@h
+	ori	r3,r3,_SDR1@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r3,0(r3)
+	mtspr	SDR1,r3
+	lwz	r0,MMU_SEG0(r2)
+	mtsr	SR0,r0
+	lwz	r0,MMU_SEG1(r2)
+	mtsr	SR1,r0
+	lwz	r0,MMU_SEG2(r2)
+	mtsr	SR2,r0
+	lwz	r0,MMU_SEG3(r2)
+	mtsr	SR3,r0
+	lwz	r0,MMU_SEG4(r2)
+	mtsr	SR4,r0
+	lwz	r0,MMU_SEG5(r2)
+	mtsr	SR5,r0
+	lwz	r0,MMU_SEG6(r2)
+	mtsr	SR6,r0
+	lwz	r0,MMU_SEG7(r2)
+	mtsr	SR7,r0
+	lwz	r0,MMU_SEG8(r2)
+	mtsr	SR8,r0
+	lwz	r0,MMU_SEG9(r2)
+	mtsr	SR9,r0
+	lwz	r0,MMU_SEG10(r2)
+	mtsr	SR10,r0
+	lwz	r0,MMU_SEG11(r2)
+	mtsr	SR11,r0
+	lwz	r0,MMU_SEG12(r2)
+	mtsr	SR12,r0
+	lwz	r0,MMU_SEG13(r2)
+	mtsr	SR13,r0
+	lwz	r0,MMU_SEG14(r2)
+	mtsr	SR14,r0
+	lwz	r0,MMU_SEG15(r2)
+	mtsr	SR15,r0
+/* Now turn on the MMU for real! */
+	mfmsr	r3
+	ori	r3,r3,MSR_DR|MSR_IR
+	mtspr	SRR1,r3
+	lis	r3,30f@h
+	ori	r3,r3,30f@l
+	mtspr	SRR0,r3
+DO_RFI_TRACE_UNMAPPED(0xDEAD0500)	
+	SYNC
+	rfi				/* enables MMU */
+30:
+	mfspr	r2,PVR			/* Check for 601 */
+	srwi	r2,r2,16
+	cmpi	0,r2,1
+	beq	40f
+/* Turn on L1 Data Cache */
+	mfspr	r3,HID0		/* Caches are controlled by this register */
+	ori	r4,r3,(HID0_ICE|HID0_ICFI)
+	ori	r3,r3,(HID0_ICE)
+	ori	r4,r4,(HID0_DCE|HID0_DCI)
+	ori	r3,r3,(HID0_DCE)
+	sync
+	mtspr	HID0,r4
+	mtspr	HID0,r3
+/* L1 cache enable */
+	mfspr	r2,PVR			/* Check for 603/603e */
+	srwi	r2,r2,16
+	cmpi	0,r2,4			/* 604 */
+	bne	40f
+	mfspr	r3,HID0			/* Turn on 604 specific features */
+	ori	r3,r3,(HID0_SIED|HID0_BHTE)
+	mtspr	HID0,r3
+40:	b	_EXTERN(start_kernel)		/* call main code */
+	.long	0		# Illegal!
+
+/*
+ * BeBox CPU #2 runs here
+ */
+Reset_BeBox_CPU1:	
+	lis	r1,CPU1_stack@h
+	ori	r1,r1,CPU1_stack@l
+	li	r2,0x0FFF	/* Mask stack address down to page boundary */
+	andc	r1,r1,r2
+	subi	r1,r1,INT_FRAME_SIZE+STACK_FRAME_OVERHEAD	/* Padding for first frame */
+	lis	r30,CPU1_trace@h
+	ori	r30,r30,CPU1_trace@l
+	andc	r30,r30,r7
+	li	r5,1
+	stw	r5,0(r30)
+	li	r2,0		/* TOC pointer for nanokernel */
+	li	r0,MSR_		/* Make sure FPU enabled */
+	mtmsr	r0
+/* Initialize BAT registers */
+	lis	r3,BAT0@h
+	ori	r3,r3,BAT0@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT0U,r0
+	mtspr	DBAT0U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT0L,r0
+	mtspr	DBAT0L,r0
+	lis	r3,BAT1@h
+	ori	r3,r3,BAT1@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT1U,r0
+	mtspr	DBAT1U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT1L,r0
+	mtspr	DBAT1L,r0
+	lis	r3,TMP_BAT2@h
+	ori	r3,r3,TMP_BAT2@l
+	andc	r3,r3,r7	/* make unmapped address */
+	lwz	r0,0(r3)
+	mtspr	IBAT2U,r0
+	mtspr	DBAT2U,r0
+	lwz	r0,4(r3)
+	mtspr	IBAT2L,r0
+	mtspr	DBAT2L,r0
+/* Now we can turn on the MMU */
+	mfmsr	r3
+	ori	r3,r3,MSR_DR|MSR_IR
+	mtspr	SRR1,r3
+	lis	r3,10f@h
+	ori	r3,r3,10f@l
+	mtspr	SRR0,r3
+	li	r5,2
+	stw	r5,0(r30)
+	SYNC
+	rfi				/* enables MMU */
+10:
+	lis	r30,CPU1_trace@h
+	ori	r30,r30,CPU1_trace@l
+	li	r5,3
+	stw	r5,0(r30)
+	bl	_EXTERN(BeBox_CPU1)
+
+/*
+ * Machine Check (Bus Errors, etc)
+ */
+MachineCheck:	
+	TRACE_TRAP(0x0200)
+	SAVE_INT_REGS(0x0200)
+	addi	r3,r1,STACK_FRAME_OVERHEAD    /* Set pointer to saved regs */
+	bl	_EXTERN(MachineCheckException)
+	RETURN_FROM_INT(0x0200)
+
+/*
+ * Data Access exception
+ */
+DataAccess:
+/*	TRACE_TRAP(0x0300) */
+	SAVE_INT_REGS(0x0300)
+	SAVE_PAGE_FAULT_REGS(0x0300)
+	BUMP(__Data_Page_Faults)
+	addi	r3,r1,STACK_FRAME_OVERHEAD    /* Set pointer to saved regs */
+	bl	_EXTERN(DataAccessException)
+#if 0
+	bl	_EXTERN(flush_instruction_cache)
+#endif	
+	RETURN_FROM_INT(0x0300)
+
+/*
+ * Instruction Access Exception
+ */
+InstructionAccess:
+/*	TRACE_TRAP(0x0400) */
+	SAVE_INT_REGS(0x0400)
+	SAVE_PAGE_FAULT_REGS(0x0400)
+	BUMP(__Instruction_Page_Faults)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(InstructionAccessException)
+#if 0
+	bl	_EXTERN(flush_instruction_cache)
+#endif	
+	RETURN_FROM_INT(0x0400)
+
+/*
+ * Hardware Interrupt
+ */
+HardwareInterrupt:	
+	SAVE_INT_REGS(0x0500)
+	BUMP(__Hardware_Interrupts)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(handle_IRQ)
+	RETURN_FROM_INT(0x0500)
+
+/*
+ * Alignment
+ */
+Alignment:	
+	TRACE_TRAP(0x0600)
+	SAVE_INT_REGS(0x0600)
+	SAVE_PAGE_FAULT_REGS(0x0600)
+	GET_CURRENT(r3)
+	SAVE_FP_REGS(r3,0x600)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(AlignmentException)
+	GET_CURRENT(r3)
+	RESTORE_FP_REGS(r3,0x600)
+	RETURN_FROM_INT(0x0600)
+
+/*
+ * Illegal instruction
+ */
+ProgramCheck:
+	TRACE_TRAP(0x0700)
+	SAVE_INT_REGS(0x0700)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(ProgramCheckException)
+	RETURN_FROM_INT(0x0700)
+
+/*
+ * Single Step Exception
+ */
+SingleStep:
+	SAVE_INT_REGS(0x0D00)
+	SAVE_PAGE_FAULT_REGS(0x0D00)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(SingleStepException)
+#if 0
+	bl	_EXTERN(flush_instruction_cache)
+#endif	
+	RETURN_FROM_INT(0x0D00)
+
+/*
+ * Floating point [not available, etc]
+ */
+FloatingPointCheck:	
+	TRACE_TRAP(0x0800)
+	SAVE_INT_REGS(0x0800)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(FloatingPointCheckException)
+	RETURN_FROM_INT(0x0800)
+
+/*
+ * I/O Controller error (601 only)
+ */
+IOError:
+	TRACE_TRAP(0x0A00)
+	SAVE_INT_REGS(0x0A00)
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(IOErrorException)
+	RETURN_FROM_INT(0x0A00)
+
+/*
+ * System Call exception
+ */
+SystemCall:
+/*	TRACE_TRAP(0x0C00) */
+	SAVE_INT_REGS(0x0C00)
+	lwz	r2,_CCR(r1)	/* Clear SO bit in CR */
+	lis	r9,0x1000
+	andc	r2,r2,r9
+	stw	r2,_CCR(r1)
+	cmpi	0,r0,0x7777	/* Special case for 'sys_sigreturn' */
+	bne+	10f
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(sys_sigreturn)
+	cmpi	0,r3,0		/* Check for restarted system call */
+	bge	99f
+	b	20f
+10:	lis	r2,current_set@ha
+	lwz	r2,current_set@l(r2)
+	lwz	r2,TASK_FLAGS(r2)
+	andi.	r2,r2,PF_TRACESYS
+	bne	50f
+	cmpi	0,r0,0		/* Validate system call # */
+	blt	21f
+	cmpi	0,r0,NR_syscalls
+	bge	21f
+	lis	r2,sys_call_table@h
+	ori	r2,r2,sys_call_table@l
+	slwi	r0,r0,2
+	lwzx	r2,r2,r0	/* Fetch system call handler [ptr] */
+	cmpi	0,r2,0
+	beq	21f
+	mtlr	r2
+	addi	r9,r1,STACK_FRAME_OVERHEAD	/* Set pointer to saved regs */
+	blrl			/* Call handler */
+20:	stw	r3,RESULT(r1)	/* Save result */	
+	cmpi	0,r3,0
+	bge	30f
+	neg	r4,r3		/* Check for 'legal' error */
+	cmpi	0,r4,_LAST_ERRNO
+	bgt	30f		/* Assume not an error, but a valid return */
+	neg	r3,r3
+	cmpi	0,r3,ERESTARTNOHAND
+	bne	22f
+	li	r3,EINTR
+	b	22f
+21:	li	r3,ENOSYS	/* Invalid system call */
+22:	lwz	r2,_CCR(r1)	/* Set SO bit in CR */
+	oris	r2,r2,0x1000
+	stw	r2,_CCR(r1)
+30:	stw	r3,GPR3(r1)	/* Update return value */
+#if 1
+	addi	r3,r1,STACK_FRAME_OVERHEAD		/* Set pointer to saved regs */
+	bl	_EXTERN(trace_syscall)
+#endif
+	b	99f
+/* Traced system call support */
+50:	bl	_EXTERN(syscall_trace)
+	lwz	r0,GPR0(r1)	/* Restore original registers */
+	lwz	r3,GPR3(r1)
+	lwz	r4,GPR4(r1)
+	lwz	r5,GPR5(r1)
+	lwz	r6,GPR6(r1)
+	lwz	r7,GPR7(r1)
+	lwz	r8,GPR8(r1)
+	lwz	r9,GPR9(r1)
+	lis	r2,sys_call_table@h
+	ori	r2,r2,sys_call_table@l
+	slwi	r0,r0,2
+	lwzx	r2,r2,r0	/* Fetch system call handler [ptr] */
+	mtlr	r2
+	addi	r9,r1,STACK_FRAME_OVERHEAD	/* Set pointer to saved regs */
+	blrl			/* Call handler */
+	stw	r3,RESULT(r1)	/* Save result */	
+	cmpi	0,r3,0
+	bge	60f
+	neg	r4,r3		/* Check for 'legal' error */
+	cmpi	0,r4,_LAST_ERRNO
+	bgt	60f		/* Assume not an error, but a valid return */
+	neg	r3,r3
+	cmpi	0,r3,ERESTARTNOHAND
+	bne	52f
+	li	r3,EINTR
+52:	lwz	r2,_CCR(r1)	/* Set SO bit in CR */
+	oris	r2,r2,0x1000
+	stw	r2,_CCR(r1)
+60:	stw	r3,GPR3(r1)	/* Update return value */
+	bl	_EXTERN(syscall_trace)
+99:
+#if 0 /* This isn't needed here - already in RETURN_FROM_INT */
+	lis	r2,kernel_pages_are_copyback@ha
+	lwz	r2,kernel_pages_are_copyback@l(r2)
+	cmpi	0,r2,0
+	beq	00f
+	bl	_EXTERN(flush_instruction_cache)	/* Ensure cache coherency */
+00:
+#endif
+	RETURN_FROM_INT(0x0C00)
+
+/*
+ * Handle TLB miss for instruction
+ */
+InstructionTLBMiss:
+	BUMP_UNMAPPED(__Instruction_TLB_Misses)
+#ifdef DO_TLB_TRACE
+	lis	r1,_TLB_ptr@h
+	ori	r1,r1,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r1,r1,r2
+	lwz	r1,0(r1)
+	andc	r1,r1,r2
+	subi	r1,r1,4
+	lis	r2,0xBEBE
+	ori	r2,r2,0x0100
+	stwu	r2,4(r1)
+	mfspr	r2,SRR0
+	stwu	r2,4(r1)
+	mfspr	r2,SRR1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH2
+	stwu	r2,4(r1)
+	mfspr	r2,ICMP
+	stwu	r2,4(r1)
+	mfspr	r2,IMISS
+	stwu	r2,4(r1)
+	addi	r1,r1,4+(1*4)
+	lis	r3,_TLB_ptr@h
+	ori	r3,r3,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r3,r3,r2
+	stw	r1,0(r3)
+#endif	
+	mfctr	r0		/* Need to save this - CTR can't be touched! */
+	mfspr	r2,HASH1	/* Get PTE pointer */
+	mfspr	r3,ICMP		/* Partial item compare value */
+00:	li	r1,8		/* 8 items / bucket */
+	mtctr	r1
+	subi	r2,r2,8		/* Preset pointer */
+10:	lwzu	r1,8(r2)	/* Get next PTE */
+	cmp	0,r1,r3		/* Found entry yet? */
+	bdne	10b		/* Jump back if not, until CTR==0 */
+	bne	30f		/* Try secondary hash if CTR==0 */
+	lwz	r1,4(r2)	/* Get second word of entry */
+#if 0	
+	andi.	r3,r1,0x08	/* Check guard bit - invalid access if set */
+	bne	InstructionFetchError
+#endif	
+	andi.	r3,r1,0x100	/* Check R bit (referenced) */
+	bne	20f		/* If set, all done */
+	ori	r1,r1,0x100	/* Set bit */
+	stw	r1,4(r2)	/* Update memory image */
+20:	mtctr	r0		/* Restore CTR */
+	mfspr	r3,SRR1		/* Need to restore CR0 */
+	mtcrf	0x80,r3
+	mfspr	r0,IMISS	/* Set to update TLB */
+	mtspr	RPA,r1
+	tlbli	r0
+#if 0	
+	SYNC
+#endif
+	rfi			/* All done */
+/* Secondary hash */
+30:	andi.	r1,r3,0x40	/* Already doing secondary hash? */
+	bne	InstructionAddressInvalid /* Yes - item not in hash table */
+	mfspr	r2,HASH2	/* Get hash table pointer */
+	ori	r3,r3,0x40	/* Set secondary hash */
+	b	00b			/* Try lookup again */
+
+/*
+ * Handle TLB miss for DATA Load operation
+ */	
+DataLoadTLBMiss:
+	BUMP_UNMAPPED(__DataLoad_TLB_Misses)
+#ifdef DO_TLB_TRACE
+	lis	r1,_TLB_ptr@h
+	ori	r1,r1,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r1,r1,r2
+	lwz	r1,0(r1)
+	andc	r1,r1,r2
+	subi	r1,r1,4
+	lis	r2,0xBEBE
+	ori	r2,r2,0x0200
+	stwu	r2,4(r1)
+	mfspr	r2,SRR0
+	stwu	r2,4(r1)
+	mfspr	r2,SRR1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH2
+	stwu	r2,4(r1)
+	mfspr	r2,DCMP
+	stwu	r2,4(r1)
+	mfspr	r2,DMISS
+	stwu	r2,4(r1)
+	addi	r1,r1,4+(1*4)
+	lis	r3,_TLB_ptr@h
+	ori	r3,r3,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r3,r3,r2
+	stw	r1,0(r3)
+#endif	
+	mfctr	r0		/* Need to save this - CTR can't be touched! */
+	mfspr	r2,HASH1	/* Get PTE pointer */
+	mfspr	r3,DCMP		/* Partial item compare value */
+00:	li	r1,8		/* 8 items / bucket */
+	mtctr	r1
+	subi	r2,r2,8		/* Preset pointer */
+10:	lwzu	r1,8(r2)	/* Get next PTE */
+	cmp	0,r1,r3		/* Found entry yet? */
+	bdne	10b		/* Jump back if not, until CTR==0 */
+	bne	30f		/* Try secondary hash if CTR==0 */
+	lwz	r1,4(r2)	/* Get second word of entry */
+	andi.	r3,r1,0x100	/* Check R bit (referenced) */
+	ori	r1,r1,0x100	/* Set bit */
+	bne	20f		/* If set, all done */
+	stw	r1,4(r2)	/* Update memory image */
+20:	mtctr	r0		/* Restore CTR */
+	mfspr	r3,SRR1		/* Need to restore CR0 */
+	mtcrf	0x80,r3
+	mfspr	r0,DMISS	/* Set to update TLB */
+	mtspr	RPA,r1
+/*	SYNC() */
+	tlbld	r0
+#if 0	
+	SYNC
+#endif	
+	rfi			/* All done */
+/* Secondary hash */
+30:	andi.	r1,r3,0x40	/* Already doing secondary hash? */
+	bne	DataAddressInvalid /* Yes - item not in hash table */
+	mfspr	r2,HASH2	/* Get hash table pointer */
+	ori	r3,r3,0x40	/* Set secondary hash */
+	b	00b			/* Try lookup again */
+
+/*
+ * Handle TLB miss for DATA STORE
+ */
+DataStoreTLBMiss:
+	BUMP_UNMAPPED(__DataStore_TLB_Misses)
+#ifdef DO_TLB_TRACE
+	lis	r1,_TLB_ptr@h
+	ori	r1,r1,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r1,r1,r2
+	lwz	r1,0(r1)
+	andc	r1,r1,r2
+	subi	r1,r1,4
+	lis	r2,0xBEBE
+	ori	r2,r2,0x0300
+	stwu	r2,4(r1)
+	mfspr	r2,SRR0
+	stwu	r2,4(r1)
+	mfspr	r2,SRR1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH1
+	stwu	r2,4(r1)
+	mfspr	r2,HASH2
+	stwu	r2,4(r1)
+	mfspr	r2,DCMP
+	stwu	r2,4(r1)
+	mfspr	r2,DMISS
+	stwu	r2,4(r1)
+	addi	r1,r1,4+(1*4)
+	lis	r3,_TLB_ptr@h
+	ori	r3,r3,_TLB_ptr@l
+	lis	r2,0xF000
+	andc	r3,r3,r2
+	stw	r1,0(r3)
+#endif	
+	mfctr	r0		/* Need to save this - CTR can't be touched! */
+	mfspr	r2,HASH1	/* Get PTE pointer */
+	mfspr	r3,DCMP		/* Partial item compare value */
+00:	li	r1,8		/* 8 items / bucket */
+	mtctr	r1
+	subi	r2,r2,8		/* Preset pointer */
+10:	lwzu	r1,8(r2)	/* Get next PTE */
+	cmp	0,r1,r3		/* Found entry yet? */
+	bdne	10b		/* Jump back if not, until CTR==0 */
+	bne	30f		/* Try secondary hash if CTR==0 */
+	lwz	r1,4(r2)	/* Get second word of entry */
+	andi.	r3,r1,0x80	/* Check C bit (changed) */
+#if 0 /* Note: no validation */
+	beq	40f		/* If not set (first time) validate access */
+#else
+	ori	r1,r1,0x180	/* Set changed, accessed */
+	bne	20f
+	stw	r1,4(r2)
+#endif	
+20:	mtctr	r0		/* Restore CTR */
+	mfspr	r3,SRR1		/* Need to restore CR0 */
+	mtcrf	0x80,r3
+	mfspr	r0,DMISS	/* Set to update TLB */
+	mtspr	RPA,r1
+	tlbld	r0
+#if 0	
+	SYNC
+#endif	
+	rfi			/* All done */	
+/* Secondary hash */
+30:	andi.	r1,r3,0x40	/* Already doing secondary hash? */
+	bne	DataAddressInvalid /* Yes - item not in hash table */
+	mfspr	r2,HASH2	/* Get hash table pointer */
+	ori	r3,r3,0x40	/* Set secondary hash */
+	b	00b			/* Try lookup again */
+/* PTE found - validate access */
+40:	rlwinm. r3,r1,30,0,1	/* Extract PP bits */
+	bge-	50f		/* Jump if PP=0,1 */
+	andi.	r3,r1,1
+	beq+	70f		/* Access OK */
+	b	WriteProtectError	/* Not OK - fail! */
+50:	mfspr	r3,SRR1		/* Check privilege */
+	andi.	r3,r3,MSR_PR
+	beq+	60f		/* Jump if supervisor mode */
+	mfspr	r3,DMISS	/* Get address */
+	mfsrin	r3,r3		/* Get segment register */
+	andis.	r3,r3,0x2000	/* If Kp==0, OK */
+	beq+	70f
+	b	WriteProtectError	/* Bad access */
+60:	mfspr	r3,DMISS	/* Get address */
+	mfsrin	r3,r3		/* Get segment register */
+	andis.	r3,r3,0x4000	/* If Ks==0, OK */
+	beq+	70f
+	b	WriteProtectError	/* Bad access */
+70:	ori	r1,r1,0x180	/* Set changed, accessed */
+	stw	r1,4(r2)	/* Update PTE in memory */
+	b	20b
+	
+/*
+ * These routines are error paths/continuations of the exception
+ * handlers above.  They are placed here to avoid the problems
+ * of only 0x100 bytes per exception handler.
+ */
+ 
+/* Invalid address */
+InstructionAddressInvalid:
+	mfspr	r3,SRR1
+	rlwinm	r1,r3,9,6,6	/* Get load/store bit */
+	addis	r1,r1,0x4000	/* Set bit 1 -> PTE not found */
+	b	10f
+
+/* Fetch from guarded or no-access page */
+InstructionFetchError:
+	mfspr	r3,SRR1
+	rlwinm	r1,r3,9,6,6	/* Get load/store bit */
+	addis	r1,r1,0x0800	/* Set bit 4 -> protection error */
+10:	mtspr	DSISR,r1
+	mtctr	r0		/* Restore CTR */
+	andi.	r2,r3,0xFFFF	/* Clear upper bits of SRR1 */
+	mtspr	SRR1,r2
+	mfspr	r1,IMISS	/* Get failing address */
+	rlwinm.	r2,r2,0,31,31	/* Check for little endian access */
+	beq	20f		/* Jump if big endian */
+	xori	r1,r1,3
+20:	mtspr	DAR,r1		/* Set fault address */
+	mfmsr	r0		/* Restore "normal" registers */
+	xoris	r0,r0,MSR_TGPR>>16
+	mtcrf	0x80,r3		/* Restore CR0 */
+	ori	r0,r0,MSR_FP	/* Need to keep FP enabled */
+	sync			/* Some chip revs have problems here... */
+	mtmsr	r0
+	b	InstructionAccess
+
+/* Invalid address */
+DataAddressInvalid:
+	mfspr	r3,SRR1
+	rlwinm	r1,r3,9,6,6	/* Get load/store bit */
+	addis	r1,r1,0x4000	/* Set bit 1 -> PTE not found */
+	b	10f
+
+/* Write to read-only space */
+WriteProtectError:
+	mfspr	r3,SRR1
+	rlwinm	r1,r3,9,6,6	/* Get load/store bit */
+	addis	r1,r1,0x0800	/* Set bit 4 -> protection error */
+10:	mtspr	DSISR,r1
+	mtctr	r0		/* Restore CTR */
+	andi.	r2,r3,0xFFFF	/* Clear upper bits of SRR1 */
+	mtspr	SRR1,r2
+	mfspr	r1,DMISS	/* Get failing address */
+	rlwinm.	r2,r2,0,31,31	/* Check for little endian access */
+	beq	20f		/* Jump if big endian */
+	xori	r1,r1,3
+20:	mtspr	DAR,r1		/* Set fault address */
+	mfmsr	r0		/* Restore "normal" registers */
+	xoris	r0,r0,MSR_TGPR>>16
+	mtcrf	0x80,r3		/* Restore CR0 */
+	ori	r0,r0,MSR_FP	/* Need to keep FP enabled */
+	sync			/* Some chip revs have problems here... */
+	mtmsr	r0
+	b	DataAccess
+
+/*
+ * Flush instruction cache
+ * *** I'm really paranoid here!
+ */
+_GLOBAL(flush_instruction_cache)
+	mflr	r5
+	bl	_EXTERN(flush_data_cache)
+	mfspr	r2,PVR			/* Check for 601 */
+	srwi	r2,r2,16
+	cmpi	0,r2,1
+	beq	99f
+	mfspr	r3,HID0	/* Caches are controlled by this register */
+	li	r4,0
+	ori	r4,r4,(HID0_ICE|HID0_ICFI)
+	or	r3,r3,r4	/* Need to enable+invalidate to clear */
+	mtspr	HID0,r3
+	andc	r3,r3,r4
+	ori	r3,r3,HID0_ICE	/* Enable cache */
+	mtspr	HID0,r3
+99:	mtlr	r5
+	blr
+
+/*
+ * Flush data cache
+ * *** I'm really paranoid here!
+ */
+_GLOBAL(flush_data_cache)
+	BUMP(__Cache_Flushes)
+	lis	r3,cache_is_copyback@ha
+	lwz	r3,cache_is_copyback@l(r3)
+	cmpi	0,r3,0
+	beq	10f
+/* When DATA CACHE is copy-back */
+	lis	r3,cache_flush_buffer@h
+	ori	r3,r3,cache_flush_buffer@l
+	li	r4,NUM_CACHE_LINES
+	mtctr	r4
+00:	dcbz	0,r3			/* Flush cache line with minimal BUS traffic */
+	addi	r3,r3,CACHE_LINE_SIZE	/* Next line, please */
+	bdnz	00b	
+10:	blr
+
+/*
+ * Flush a particular page from the DATA cache
+ * Note: this is necessary because the instruction cache does *not*
+ * snoop from the data cache.
+ *	void flush_page(void *page)
+ */
+_GLOBAL(flush_page)
+	li	r4,0x0FFF
+	andc	r3,r3,r4		/* Get page base address */
+	li	r4,4096/CACHE_LINE_SIZE	/* Number of lines in a page */
+	mtctr	r4
+00:	dcbf	0,r3			/* Clear line */
+	icbi	0,r3
+	addi	r3,r3,CACHE_LINE_SIZE
+	bdnz	00b
+	blr
+	
+/*
+ * This routine switches between two different tasks.  The process
+ * state of one is saved on its kernel stack.  Then the state
+ * of the other is restored from its kernel stack.  The memory
+ * management hardware is updated to the second process's state.
+ * Finally, we can return to the second process, via the 'return'.
+ *
+ * Note: there are two ways to get to the "going out" portion
+ * of this code; either by coming in via the entry (_switch)
+ * or via "fork" which must set up an environment equivalent
+ * to the "_switch" path.  If you change this (or in particular, the
+ * SAVE_REGS macro), you'll have to change the fork code also.
+ *
+ * The code which creates the new task context is in 'copy_thread'
+ * in arch/ppc/kernel/process.c
+ */	
+_GLOBAL(_switch)
+	mtspr	SPR0,r1		/* SAVE_REGS prologue */
+	mtspr	SPR1,r2
+	mflr	r2		/* Return to switch caller */
+	mtspr	SPR2,r2
+	mfmsr	r2
+	mtspr	SPR3,r2
+	SAVE_REGS(0x0FF0)
+	SAVE_FP_REGS(r3,0x0FF0)
+	SYNC()
+	stw	r1,KSP(r3)	/* Set old stack pointer */
+	BUMP(__Context_Switches)
+	lwz	r1,KSP(r4)	/* Load new stack pointer */
+	CHECK_STACK()
+	lwz	r0,MMU_SEG0(r4)
+	mtsr	SR0,r0
+	lwz	r0,MMU_SEG1(r4)
+	mtsr	SR1,r0
+	lwz	r0,MMU_SEG2(r4)
+	mtsr	SR2,r0
+	lwz	r0,MMU_SEG3(r4)
+	mtsr	SR3,r0
+	lwz	r0,MMU_SEG4(r4)
+	mtsr	SR4,r0
+	lwz	r0,MMU_SEG5(r4)
+	mtsr	SR5,r0
+	lwz	r0,MMU_SEG6(r4)
+	mtsr	SR6,r0
+	lwz	r0,MMU_SEG7(r4)
+	mtsr	SR7,r0
+	lwz	r0,MMU_SEG8(r4)
+	mtsr	SR8,r0
+	lwz	r0,MMU_SEG9(r4)
+	mtsr	SR9,r0
+	lwz	r0,MMU_SEG10(r4)
+	mtsr	SR10,r0
+	lwz	r0,MMU_SEG11(r4)
+	mtsr	SR11,r0
+	lwz	r0,MMU_SEG12(r4)
+	mtsr	SR12,r0
+	lwz	r0,MMU_SEG13(r4)
+	mtsr	SR13,r0
+	lwz	r0,MMU_SEG14(r4)
+	mtsr	SR14,r0
+	lwz	r0,MMU_SEG15(r4)
+	mtsr	SR15,r0
+	RESTORE_FP_REGS(r4,0x0FF0)
+	tlbia				/* Invalidate entire TLB */
+	BUMP(__TLBIAs)
+	bl	_EXTERN(flush_instruction_cache)
+#ifdef TLB_STATS
+/* TEMP */
+	lis	r2,DataLoadTLB_trace_ptr@h
+	ori	r2,r2,DataLoadTLB_trace_ptr@l
+	lis	r3,0x9000
+	lwz	r4,0(r2)
+	or	r4,r4,r3
+	li	r0,0
+	stw	r0,0(r4)
+	stw	r0,4(r4)
+	stw	r0,8(r4)
+	stw	r0,12(r4)
+	addi	r4,r4,4
+	cmpl	0,r4,r2
+	blt	00f
+	lis	r4,DataLoadTLB_trace_buf@h
+	ori	r4,r4,DataLoadTLB_trace_buf@l
+00:	stw	r4,0(r2)
+/* TEMP */	
+#endif
+	RETURN_FROM_INT(0x0FF0)
+	
+
+/*
+ * This routine is just here to keep GCC happy - sigh...
+ */	
+_GLOBAL(__main)
+	blr
+
+#ifdef DO_TRAP_TRACE
+check_trace:
+	sync				/* Force all writes out */
+	lwz	r2,-8(r1)
+	andi.	r2,r2,MSR_PR
+	bne	99f
+	lwz	r2,-32(r1)
+	lwz	r3,-16(r1)
+	cmp	0,r2,r3
+	bne	99f
+	andi.	r2,r2,0x7FFF
+	cmpi	0,r2,0x0C00
+	bge	99f
+	lwz	r2,-32+4(r1)
+	lwz	r3,-16+4(r1)
+	cmp	0,r2,r3
+	bne	99f
+	lwz	r2,-32+8(r1)
+	lwz	r3,-16+8(r1)
+	cmp	0,r2,r3
+	bne	99f
+	lwz	r2,-32(r1)
+	lwz	r3,-16(r1)
+	cmp	0,r2,r3
+	bne	99f
+	andi.	r2,r2,0x7FFF
+	cmpi	0,r2,0x0600
+	beq	00f
+	lwz	r2,-32+12(r1)
+	lwz	r3,-16+12(r1)
+	cmp	0,r2,r3
+	bne	99f
+00:	li	r2,0x7653
+	stw	r2,0(r1)
+	b	00b
+99:	blr
+#endif	
+
+	.data
+	.globl	sdata
+sdata:
+	.space	2*4096
+sys_stack:
+	.space	2*4096
+CPU1_stack:	
+
+	.globl	empty_zero_page
+empty_zero_page:
+	.space	4096
+
+	.globl	swapper_pg_dir
+swapper_pg_dir:
+	.space	4096	
+
+/*
+ * This space gets a copy of optional info passed to us by the bootstrap
+ * Used to pass parameters into the kernel like root=/dev/sda1, etc.
+ */	
+	.globl	cmd_line
+cmd_line:
+	.space	512	
+
+#ifdef STATS	
+/*
+ * Miscellaneous statistics - gathered just for performance info
+ */
+
+ 	.globl	_INTR_stats
+_INTR_stats:
+__Instruction_TLB_Misses:
+	.long	0,0	/* Instruction TLB misses */
+__DataLoad_TLB_Misses:
+	.long	0,0	/* Data [load] TLB misses */
+__DataStore_TLB_Misses:
+	.long	0,0	/* Data [store] TLB misses */
+__Instruction_Page_Faults:	
+	.long	0,0	/* Instruction page faults */
+__Data_Page_Faults:	
+	.long	0,0	/* Data page faults */
+__Cache_Flushes:	
+	.long	0,0	/* Explicit cache flushes */
+__Context_Switches:	
+	.long	0,0	/* Context switches */
+__Hardware_Interrupts:	
+	.long	0,0	/* I/O interrupts (disk, timer, etc) */
+	.globl	__TLBIAs
+__TLBIAs:
+	.long	0,0	/* TLB cache forceably flushed */
+	.globl	__TLBIEs
+__TLBIEs:
+	.long	0,0	/* Specific TLB entry flushed */	
+#endif
+
+/*
+ * This location is used to break any outstanding "lock"s when
+ * changing contexts.
+ */
+_break_lwarx:	.long	0
+
+/*
+ * Various trace buffers
+ */	
+#ifdef DO_TRAP_TRACE
+	.data
+_TRAP_TRACE: .space	32*1024
+_TRAP_ptr:   .long	_TRAP_TRACE
+	.text
+#endif
+
+#ifdef DO_TLB_TRACE
+	.data
+_TLB_TRACE: .space	128*1024
+_TLB_ptr:   .long	_TLB_TRACE
+	.text
+#endif
+
+#ifdef DO_RFI_TRACE
+	.data
+_RFI_DATA: .space	128*1024
+_RFI_ptr:  .long	_RFI_DATA
+	.text	
+#endif
+

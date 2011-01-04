@@ -1,0 +1,246 @@
+.\" 
+.\" Copyright 1991-1998 by Open Software Foundation, Inc. 
+.\"              All Rights Reserved 
+.\"  
+.\" Permission to use, copy, modify, and distribute this software and 
+.\" its documentation for any purpose and without fee is hereby granted, 
+.\" provided that the above copyright notice appears in all copies and 
+.\" that both the copyright notice and this permission notice appear in 
+.\" supporting documentation. 
+.\"  
+.\" OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+.\" INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+.\" FOR A PARTICULAR PURPOSE. 
+.\"  
+.\" IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+.\" CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+.\" LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+.\" NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+.\" WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+.\" 
+.\"
+.\" Mach Operating System
+.\" Copyright (c) 1991 Carnegie Mellon University
+.\" All Rights Reserved.
+.\" 
+.\" Permission to use, copy, modify and distribute this software and its
+.\" documentation is hereby granted, provided that both the copyright
+.\" notice and this permission notice appear in all copies of the
+.\" software, derivative works or modified versions, and any portions
+.\" thereof, and that both notices appear in supporting documentation.
+.\" 
+.\" CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS 
+.\" CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+.\" ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+.\" 
+.\" Carnegie Mellon requests users of this software to return to
+.\" 
+.\"  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+.\"  School of Computer Science
+.\"  Carnegie Mellon University
+.\"  Pittsburgh PA 15213-3890
+.\" 
+.\" any improvements or extensions that they make and grant Carnegie the
+.\" rights to redistribute these changes.
+.\"
+.\" MkLinux
+.TH  NETMEMORY  3 7/6/91
+.CM 4
+.SH NAME
+.nf
+netmemory_create \- create a netmemory object
+netmemory_cache \- create a mach memory object from a netmemory object
+netmemory_destroy \- destroy a netmemory object
+.fi
+.SH SYNOPSIS
+.nf
+#include <servers/netmemory.h>
+
+netmemory_return_t netmemory_create(netmemory_server, object_size, 
+				    netmemory_object, netmemory_control)
+        mach_port_t     netmemory_server;
+        vm_size_t       object_size;
+        mach_port_t     *netmemory_object;
+        mach_port_t     *netmemory_control;
+
+netmemory_return_t netmemory_cache(netmemory_server, netmemory_object,
+                                   memory_object)
+        mach_port_t     netmemory_server;
+        mach_port_t     netmemory_object;
+        mach_port_t     *memory_object;
+
+netmemory_return_t netmemory_destroy(netmemory_control)
+        mach_port_t     netmemory_control;
+
+.fi
+.SH ARGUMENTS
+.TP 15
+.B netmemory_server
+Port to the Network Shared Memory Server, obtainable via the
+netname server (see
+.I netname(3)
+) under the name
+.B netmemoryserver.
+.TP 15
+.B object_size
+Size in bytes of the netmemory object to be created.
+.TP 15
+.B netmemory_object
+Port representing the netmemory object, for use with netmemory_cache.
+.TP 15
+.B memory_object
+Mach memory object, for use by vm_map.
+.TP 15
+.B netmemory_control
+Port that is used for control operations on the netmemory object.
+
+.SH DESCRIPTION
+The Network Shared Memory Server
+allows tasks on different machines to share virtual memory.
+It also provides a mechanism for arbitrary
+tasks on the same machine to share memory.
+
+To share memory between tasks using the netmemory server, first create
+a netmemory object with the netmemory_create call. This netmemory object
+can be distributed to all interested tasks either directly by IPC between
+tasks or indirectly by using a service such as the netname server.
+
+Each task should then find its local netmemory server, and call
+netmemory_cache on the local server with the netmemory object
+to obtain a local mach memory object corresponding to the netmemory object.
+The netmemory_cache call allows
+the netmemory servers to use more efficient and more distributed protocols
+for maintaining object consistency than the standard memory manager interface.
+
+Finally, the resulting memory object should be given to
+vm_map to map the object into the caller's address space.
+gain, the netmemory object
+is only for use by netmemory_cache; it should not be handed directly
+to vm_map.
+
+The netmemory object
+can be explicitly destroyed by calling netmemory_destroy
+on the netmemory_control port. This call is not necessary on
+the current implementation of the netmemoryserver which cleans up
+a netmemory object after the last kernel has unmapped the object.
+
+The current netmemory server is actually a compatibility front-end
+to the External Memory Manager library (see
+.I libxmm(3)
+).
+
+.SH EXAMPLE
+The following is a routine which demonstrates how to use the
+netmemory server.
+
+.nf
+/*
+ * Create and map a shared object of given size with
+ * netname "object_name".
+ *
+ * One task (the "master") should call this routine with
+ * hostname = 0; the routine will then create a netmemory
+ * object and register it with the netname server under the
+ * supplied object name. All other tasks (the "slaves") call
+ * this routine with the hostname where the master lives.
+ */
+kern_return_t
+map_object(object_name, hostname, address, size, anywhere)
+    char *object_name;
+    char *hostname;
+    vm_offset_t *address;
+    vm_size_t size;
+    boolean_t anywhere;
+{
+    kern_return_t kr;
+    mach_port_t netmemory_server;
+    mach_port_t memory_object;
+    mach_port_t netmemory_object;
+    mach_port_t netmemory_control;
+
+    /*
+     * Find the local netmemory server.
+     * (If this routine is used a lot, this value can be cached.)
+     */
+    kr = netname_look_up(name_server_port, "", "netmemoryserver",
+			 &netmemory_server);
+    if (kr) {
+	return kr;
+    }
+
+    /*
+     * If a hostname is provided, then we are the slave and thus we
+     * simply look up the netmemory object on the given host by using
+     * the object name.
+     *
+     * If a hostname is not provided, then we are the master and thus
+     * have the responsibility of creating a netmemory object and
+     * registering it with the netname service under the given object
+     * name.
+     */
+    if (hostname) {
+	kr = netname_look_up(name_server_port, hostname, object_name,
+			     &netmemory_object);
+	if (kr) {
+	    return kr;
+	}
+    } else {
+	kr = netmemory_create(netmemory_server, size, &netmemory_object,
+			      &netmemory_control);
+	if (kr) {
+	    return kr;
+	}
+	kr = netname_check_in(name_server_port, object_name, MACH_PORT_NULL,
+			      netmemory_object);
+	if (kr) {
+	    netmemory_destroy(netmemory_control);
+	    return kr;
+	}
+    }
+
+    /*
+     * Cache the object locally. Note that even the master must do this.
+     */
+    kr = netmemory_cache(netmemory_server, netmemory_object,
+			 &memory_object);
+    if (kr) {
+	return kr;
+    }
+
+    /*
+     * Map the object, either anywhere or at the supplied address.
+     */
+    if (anywhere) {
+	*address = 0; /* must be set */
+    }
+    kr = vm_map(task_self(), address, size, 0, anywhere,
+		memory_object, 0, FALSE,
+		VM_PROT_DEFAULT, VM_PROT_DEFAULT, VM_INHERIT_SHARE);
+    if (kr) {
+	return kr;
+    }
+    return KERN_SUCCESS;
+}
+.fi
+
+.SH FILES
+<servers/netmemory.h>
+
+.SH DIAGNOSTICS
+.TP 25
+.B NETMEMORY_SUCCESS
+operation succeeded.
+.TP 25
+.B NETMEMORY_RESOURCE
+the server could not allocate the resources necessary to perform the operation.
+.TP 25
+.B NETMEMORY_BAD_PARAMETER
+an invalid parameter was supplied.
+
+.SH SEE ALSO
+.I vm_map(2), netname(3), netmemoryserver(8), libxmm(3)
+
+.SH BUGS
+Older versions of the netmemoryserver tend to leak resources.
+
+Libxmm may not yet be documented.

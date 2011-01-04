@@ -1,0 +1,123 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+
+/*
+ * MkLinux
+ */
+
+subsystem server 1000;
+
+
+ServerPrefix do_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+#include <mach/clock_types.defs>
+
+/*
+ * Send server port to client via boostrap port
+ */
+
+simpleroutine send_server_port(
+	server: 	mach_port_t;
+	server_port: 	mach_port_make_send_t);
+
+/*
+ * Tell server we are starting a new test
+ * pass along test options &
+ * get server thread id.
+ */
+
+routine server_start_test(
+	server: mach_port_t;
+	show_time: int;
+	verbose: int;
+    out	server_thread : mach_port_t);
+
+/*
+ * Tell server we are done with this test measurement
+ */
+
+routine server_stop_test(
+	server: mach_port_t);
+
+/*
+ * Give the printf port to the server
+ */
+
+routine set_printer(
+	server: mach_port_t;
+	printer: mach_port_t);
+
+/*
+ * Ask server to print time measurements
+ */
+
+routine server_print_time(
+	server: mach_port_t);
+
+/*
+ * Start timer on server
+ */
+
+routine start_server(
+	server: mach_port_t;
+	count: int);
+
+/*
+ * Stop timer on server
+ */
+
+routine stop_server(
+	server: mach_port_t);
+
+/*
+ * Kill the server
+ */
+
+simpleroutine kill_server(
+	server: mach_port_t);
+
+
+/*
+ * get statistics from server
+ */
+
+type thread_basic_info_data_t = struct[10] of int;
+
+routine server_get_stats(
+	server: mach_port_t;
+	who	: int;
+	when	: int;
+    out	time	: tvalspec_t;
+    out th_stat	: thread_basic_info_data_t;
+    out overhead: int);
+	
+/*
+ * Initialize timer on server side
+ */
+
+routine server_set_timer(
+	server	: mach_port_t;
+	timer_id: int;
+	timer	: mach_port_t;
+	overhead: int);
+

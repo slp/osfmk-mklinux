@@ -1,0 +1,42 @@
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+# 
+# 
+# MkLinux
+ident		OSF
+
+include		"POWERMAC/config.common"
+include		"POWERMAC/config.devices"
+include		"POWERMAC/config.kgdb"
+
+config		"mach_kernel.PRODUCTION+KGDB"
+
+timezone	5 dst
+maxusers	16
+
+# Up until version 2.7.2 of gcc there is
+# a bug in the strength reducing code which
+# doesn't spot overflows. In particular, the
+# code in ppc_init for seg reg init does an
+# infinite loop. Fixed in template.mk
+
+# We assume that we won't hit this bug elsewhere as we should
+# be using a more recent compiler (eg 2.7.2.1) 
+
+makevariables CC_OPT_LEVEL = "-O2 -fomit-frame-pointer"

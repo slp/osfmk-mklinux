@@ -1,0 +1,119 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+#
+##########################################################
+#
+# conf/config.debug
+#
+# This file defines configuration options that are normally used only during
+# kernel code development and debugging. They add run-time error checks or
+# statistics gathering, which will slow down the system
+#
+##########################################################
+#
+# MACH_ASSERT controls the assert() and ASSERT() macros, used to verify the
+#	consistency of various algorithms in the kernel. The performance impact
+#	of this option is significant.
+#
+options		MACH_ASSERT
+#
+# MACH_DEBUG enables the mach_debug_server, a message interface used to
+#	retrieve or control various statistics. This interface may expose data
+#	structures that would not normally be allowed outside the kernel, and
+#	MUST NOT be enabled on a released configuration.
+#	Other options here enable information retrieval for specific subsystems
+#
+options		MACH_DEBUG
+#
+options		MACH_IPC_DEBUG
+options		MACH_VM_DEBUG
+#
+# MACH_MP_DEBUG control the possible dead locks that may occur by controlling
+#	that IPL level has been raised down to SPL0 after some calls to
+#	hardclock device driver.
+#
+options		MACH_MP_DEBUG
+#
+# ZONE_DEBUG keeps track of all zalloc()ed elements to perform further
+#	operations on each element.
+#
+options		ZONE_DEBUG
+#
+# XPR_DEBUG enables the gathering of data through the XPR macros inserted
+#	into various subsystems. This option is normally only enabled for
+#	specific performance or behavior studies, as the overhead in both
+#	code and data space is large. The data is normally retrieved through
+#	the kernel debugger (kdb) or by reading /dev/kmem. 
+#
+options		XPR_DEBUG
+#
+# MACH_LDEBUG controls the internal consistency checks and
+#	data gathering in the locking package. This also enables a debug-only
+#	version of simple-locks on uniprocessor machines. The code size and
+#	performance impact of this option is significant. 
+#	
+options		MACH_LDEBUG
+#
+# MACH_COUNTERS enables code that handles various counters in the system.
+#
+options		MACH_COUNTERS
+#
+# ETAP  The Event Trace Analysis Package enables user-level tasks to monitor
+#	and analyze kernel events.  ETAP supports three modes of tracing:
+#  
+#               1. General event tracing:       ETAP_EVENT_MONITOR
+#               2. Monitored lock tracing:      ETAP_LOCK_MONITOR
+#               3. Cumulative lock tracing:     ETAP_LOCK_ACCUMULATE
+#
+#       Each of these trace modes are mutually exclusive.
+#
+#       CONFIGURING ETAP:  To enable the trace package, the ETAP switch
+#       along with *ONE* ETAP trace mode is selected.  The selected ETAP
+#       mode determines the level of instrumentation built into the kernel. 
+#       Mode 1 configures event probes through-out the system.  Modes 2 & 3
+#       add instumentation to the kernel lock mechanisms.
+#
+#	ETAP (and all its trace modes) is mutually exclusive with the
+#	MACH_LDEBUG option.  It is assumed that general lock debugging is
+#	completed before gathering event information.
+#
+#       ETAP functionality is normally only enabled for event profiling and
+#       performance studies.  Event tracing should not be enabled for release
+#       configurations, as the code size and performance impact of these
+#       options are significant.
+#
+#
+#options	ETAP			# ETAP enable
+#options	ETAP_EVENT_MONITOR	# Monitor events
+#options	ETAP_LOCK_MONITOR	# Monitor lock behavior
+#options	ETAP_LOCK_ACCUMULATE	# Collect cumulative lock data
+#
+#
+# Turn on in-kernel unit testing
+#
+options		KERNEL_TEST
+
+# 
+# Enable an option to allow the build environment to know we're building
+# a debug kernel.
+#
+makeoptions     "KERNEL_CONFIG_DEBUG"=" "

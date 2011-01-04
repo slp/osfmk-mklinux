@@ -1,0 +1,143 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+/*     
+ * xk_lproxy.defs
+ *
+ * x-kernel v3.2
+ *
+ * Copyright (c) 1993,1991,1990  Arizona Board of Regents
+ *
+ *
+ * Revision: 1.14
+ * Date: 1993/09/16 22:03:39
+ */
+
+
+subsystem
+#ifdef KERNEL_USER
+KernelUser
+#endif
+xk_lproxy 844315;
+
+userprefix call_lproxy_;
+serverprefix do_lproxy_;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+rcsid "$Header: /u1/osc/rcs/xkern/protocols/proxy/xk_lproxy.defs,v 1.1.9.2 1995/05/14 21:35:53 dwm Exp $";
+
+
+#include <xkern/protocols/proxy/xk_mig_t.defs>
+
+import  <xkern/include/assert.h>;
+simport <xkern/protocols/proxy/lproxy.h>;
+uimport <xkern/protocols/proxy/proxy_offset.h>;
+
+
+routine
+dumpXObj
+(
+	reqPort	:	mach_port_t;
+    out	retVal	:	xkern_return_t;
+	obj	:	xobj_ext_id_t;
+    out	dump	:	xk_xobj_dump_t
+);
+
+
+routine
+xOpenDone
+(
+	reqPort	:	mach_port_t;
+	domPort	:	mach_port_make_send_t;
+    out	retVal	:	xkern_return_t;
+	lls	:	xobj_ext_id_t;
+	llp	:	xobj_ext_id_t;
+	hlpRcv	:	xobj_ext_id_t;
+	hlpType	:	xobj_ext_id_t;
+	path	:	xk_path_t
+);
+
+
+/* 
+ * The xk_msg_data_t is nominally defined as a variable length array.
+ * This is, in fact, what the server will see.  Lproxy clients, by
+ * convention, will pass in a pointer to an 'xk_and_mach_msg_t'
+ * structure cast as a pointer to a character buffer.  The MIG
+ * translation routines in lproxyUser will be post-processed to deal
+ * with this structure (and to use the given mach message buffer) 
+ * instead of a direct variable-length array. 
+ */
+
+routine 
+xDemux
+(	
+	reqPort	:	mach_port_t;
+	domPort :	mach_port_make_send_t;
+    out	retVal	:	xkern_return_t;
+	lls	:	xobj_ext_id_t;	
+	req	:	xk_msg_data_t;
+	/* 
+	 * msgStart is a dummy parameter that the server stub passes to
+	 * the server routine
+	 */
+	msgStart:	int;
+	msgOol	:	xk_large_msg_data_t, physicalcopy;
+	reqAttr	:	xk_msg_attr_t
+);
+
+
+/* 
+ * 'req is treated in the same manner as the msg in xDemux.
+ * 'rep is a pointer to an x-kernel Msg structure, constructed
+ *  with the same buffer passed in as 'reqmsg'.
+ *  call_lproxy_xCallDemux will pop the appropriate amount off of
+ * 'repmsg' so it contains only the x-kernel message data.
+ */
+
+routine 
+xCallDemux
+(	
+	reqPort	:	mach_port_t;
+	domPort :	mach_port_make_send_t;
+    out	retVal	:	xkern_return_t;
+	lls	:	xobj_ext_id_t;	
+	req	:	xk_msg_data_t;
+	/* 
+	 * reqMsgStart is a dummy parameter that the server stub passes to
+	 * the server routine
+	 */
+	reqMsgStart:	int;
+	reqool	:	xk_large_msg_data_t, physicalcopy;
+    out	rep	:	xk_msg_data_t;
+    out repool	:	xk_large_msg_data_t;
+	reqAttr	:	xk_msg_attr_t
+);
+
+
+routine
+ping
+(
+	reqPort	:	mach_port_t
+);

@@ -1,0 +1,11 @@
+#! /bin/sh
+
+# File 1 - Tape boot kernel, root=builtin ramdisk
+# File 2 - SCSI boot kernel, root=/dev/sda1
+# File 3 - Root filesystem
+
+FILES=`pwd`/arch/ppc/FILES.min
+OUT=`pwd`/TAPE_FILE3.gz
+su -c "cd /;pax -wdv <$FILES" | gzip >$OUT
+
+

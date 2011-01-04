@@ -1,0 +1,33 @@
+INSTRUCTIONS FOR BUILDING UNDER LINUX
+
+NOTE :  none of the commands here have been tested by actual use, they
+	were written alongside a test-build, but not cut-and-pasted,
+	so only trust them 95% for correctness.
+
+To build these tools:
+
+install as much of the mach_kernel include files as possible
+from the mach_kernel directory:
+
+  build MAKEFILE_PASS=FIRST
+
+this will either complete successfully (if mig was already installed),
+or will terminate when it can't find migcom. If it terminates because
+of the lack of migcom, then
+	cp mach/*.h ../../export/powermac/usr/include/mach/
+
+
+Now build migcom and config, they can be found in:
+
+src/mach_services/lib/migcom and src/mach_services/cmds/config
+
+Install them by hand in tools/powermac/hostbin:
+
+cp obj/powermac/mach_services/cmds/config/config tools/powermac/hostbin
+cp obj/powermac/mach_services/lib/migcom/migcom  tools/powermac/hostbin
+
+It is recommended that you then delete everything under
+export/powermac and obj/powermac and start your building of the kernel
+by re-exporting the include files.
+
+Please update this file if there are any inexactitudes :)

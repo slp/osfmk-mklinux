@@ -1,0 +1,19 @@
+#! /bin/sh
+
+make bImage tImage
+
+set -e
+set -x
+
+# File 1 - Tape boot kernel, root=builtin ramdisk
+# File 2 - SCSI boot kernel, root=/dev/sda1
+# File 3 - Root filesystem
+
+#mt -f /dev/nst0 retension
+mt -f /dev/nst0 rewind
+dd if=arch/ppc/boot/tImage of=/dev/nst0 obs=256b
+dd if=arch/ppc/boot/bImage of=/dev/nst0 obs=256b
+FILES=`pwd`/arch/ppc/FILES.min
+su -c "cd /;pax -wvdf /dev/nst0 <$FILES"
+mt -f /dev/nst0 rewind
+

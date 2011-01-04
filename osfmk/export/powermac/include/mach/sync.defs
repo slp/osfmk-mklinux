@@ -1,0 +1,128 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ * 
+ */
+/*
+ * MkLinux
+ */
+/*
+ *	File: mach/sync.defs
+ *	Author: Joseph CaraDonna
+ *
+ *	Exported kernel calls	
+ *
+ */
+
+subsystem
+#if	KERNEL_SERVER
+	KernelServer
+#endif	/* KERNEL_SERVER */
+			sync 617000;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+#include <mach/clock_types.defs>
+
+#if	KERNEL_SERVER
+import <kern/sync_lock.h>;
+import <kern/sync_sema.h>;
+import <kern/ipc_sync.h>;
+#endif	/* KERNEL_SERVER */
+
+
+type semaphore_t = mach_port_t
+		ctype: mach_port_t
+#if	KERNEL_SERVER
+		intran: semaphore_t convert_port_to_semaphore(mach_port_t)
+		outtran: mach_port_t convert_semaphore_to_port(semaphore_t)
+		destructor: semaphore_dereference(semaphore_t)
+#endif	/* KERNEL_SERVER */
+		;
+
+type lock_set_t = mach_port_t
+		ctype: mach_port_t
+#if	KERNEL_SERVER
+		intran: lock_set_t convert_port_to_lock_set(mach_port_t)
+		outtran: mach_port_t convert_lock_set_to_port(lock_set_t)
+		destructor: lock_set_dereference(lock_set_t)
+#endif	/* KERNEL_SERVER */
+		;
+
+
+routine semaphore_create(
+		task		: task_t;
+	out	semaphore	: semaphore_t;
+		policy		: int;
+		value		: int);
+
+routine semaphore_destroy(
+		task		: task_t;
+		semaphore	: semaphore_t);
+
+routine semaphore_signal(
+		semaphore	: semaphore_t);
+
+routine semaphore_signal_all(
+		semaphore	: semaphore_t);
+
+routine semaphore_wait(
+		semaphore	: semaphore_t);
+
+routine lock_set_create(
+		task		: task_t;
+	out	new_lock_set	: lock_set_t;
+		n_ulocks	: int;
+		policy		: int);
+
+routine lock_set_destroy(
+		task		: task_t;
+		lock_set	: lock_set_t);
+
+routine lock_acquire(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine lock_release(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine lock_try(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine lock_make_stable(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine lock_handoff(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine lock_handoff_accept(
+		lock_set	: lock_set_t;
+		lock_id		: int);
+
+routine semaphore_signal_thread(
+		semaphore	: semaphore_t;
+		thread		: thread_act_t);
+
+routine semaphore_timedwait(
+		semaphore	: semaphore_t;
+		wait_time	: tvalspec_t);

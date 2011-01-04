@@ -1,0 +1,244 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+/* CMU_HIST */
+/*
+ * Revision 2.2.2.6  92/09/15  17:34:56  jeffreyh
+ * 	Fold norma_ipc_node_fproxy_cancel into norma_ipc_node_dnnotify.
+ * 	[92/09/15            dlb]
+ * 	Add norma_ipc_fproxy_cancel
+ * 	[92/08/07            dlb]
+ * 
+ * 	Remove has_dnrequest argument from norma_ipc_pull_receive.
+ * 	Add source node argument to norma_ipc_node_dnnotify.
+ * 	[92/08/06            dlb]
+ * 
+ * Revision 2.2.2.5  92/06/24  18:06:03  jeffreyh
+ * 	Change arguments to norma_ipc_pull_receive to take the
+ * 	host_paging port instead of the host_priv port
+ * 	[92/06/17            jeffreyh]
+ * 
+ * Revision 2.2.2.4  92/05/27  00:53:49  jeffreyh
+ * 	Add routines to request and perform dead name requests among nodes.
+ * 	Delete dnrequest fields from norma_ipc_pull_receive, and just
+ * 	pass a boolean indicating whether source has outstanding dnrequests.
+ * 	[92/05/25            dlb]
+ * 
+ * 	Added another out parameter to norma_ipc_stransit_request used
+ * 	for retargeting nodes.
+ * 	[92/05/21            sjs]
+ * 
+ * Revision 2.2.2.3.1.2  92/05/08  10:18:53  jeffreyh
+ * 	atrium_msg_count --> moved_msg_count for readability.
+ * 	[92/05/07            dlb]
+ * 
+ * Revision 2.2.2.3.1.1  92/05/06  17:42:46  jeffreyh
+ * 	Add atrium_msg_count argument to pull_receive call to allow
+ * 	puller to synchronize with arrival of all atrium messages.
+ * 	[92/05/05            dlb]
+ * 
+ * Revision 2.2.2.3  92/04/08  15:46:39  jeffreyh
+ * 	Change norma_ipc_no_local_senders to norma_ipc_yield_transits
+ * 	and add sotransit argument.
+ * 	[92/04/07            dlb]
+ * 
+ * Revision 2.2.2.2  92/02/21  11:25:21  jsb
+ * 	Added norma_xmm_object_release.
+ * 	[92/02/16  14:30:43  jsb]
+ * 
+ * 	Added norma_xmm_object_by_memory_object.
+ * 	[92/02/10  17:04:44  jsb]
+ * 
+ * Revision 2.2.2.1  92/01/03  16:38:34  jsb
+ * 	In norma_ipc_pull_receive, seqno and qlimit are shorts, not ints.
+ * 	[91/12/26  18:27:24  jsb]
+ * 
+ * 	Replaced simpleroutines norma_ipc_start_migrating_messages and
+ * 	norma_ipc_all_messages_migrated with routine norma_ipc_pull_receive.
+ * 	[91/12/25  16:46:19  jsb]
+ * 
+ * 	Added norma_ipc_no_local_senders and norma_ipc_stransit_request.
+ * 	Removed norma_token_deliver.
+ * 	[91/12/24  14:30:01  jsb]
+ * 
+ * Revision 2.2  91/12/13  14:10:54  jsb
+ * 	First checkin. Split off from mach/mach_norma.defs.
+ * 
+ */
+/* CMU_ENDHIST */
+/* 
+ * Mach Operating System
+ * Copyright (c) 1991 Carnegie Mellon University
+ * All Rights Reserved.
+ * 
+ * Permission to use, copy, modify and distribute this software and its
+ * documentation is hereby granted, provided that both the copyright
+ * notice and this permission notice appear in all copies of the
+ * software, derivative works or modified versions, and any portions
+ * thereof, and that both notices appear in supporting documentation.
+ * 
+ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
+ * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
+ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
+ * 
+ * Carnegie Mellon requests users of this software to return to
+ * 
+ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
+ *  School of Computer Science
+ *  Carnegie Mellon University
+ *  Pittsburgh PA 15213-3890
+ * 
+ * any improvements or extensions that they make and grant Carnegie Mellon
+ * the rights to redistribute these changes.
+ */
+/*
+ */
+
+subsystem
+#if	KERNEL_USER
+	  KernelUser
+#endif	KERNEL_USER
+#if	KERNEL_SERVER
+	  KernelServer
+#endif	KERNEL_SERVER
+		       xmm_internal 1600;
+#ifdef	KERNEL_USER
+userprefix r_;
+#endif	KERNEL_USER
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+import <xmm/xmm_types.h>;
+
+/*
+ * XXX
+ * Should use indeterminate arrays, or manual switching between
+ * in-line and out-of-line forms?
+ */
+type vm_map_vector_t			= ^array[] of int;
+type memory_object_vector_t		= ^array[] of mach_port_move_send_t;
+
+/*
+ * Obtain reference to xmm object for given memory object. Used to implement
+ * atomic xmm stack creation and destruction for memory objects.
+ */
+routine	xmm_remote_object_by_memory_object(
+		host_priv	: host_priv_t;
+		memory_object	: mach_port_copy_send_t;
+	out	xmm_object	: mach_port_move_send_t);
+
+/*
+ * Release reference to xmm object. Used for xmm stack management.
+ * Note that this routine is rarely used; it is only necessary when
+ * memory object and its xmm stack are on different nodes (which only
+ * happens if memory object migrates), or if a kernel asks for an xmm_object
+ * and then decides not to map it (which does not currently happen),
+ * or if kernel is eagerly given an xmm object under the assumption that
+ * it does not have it already, but it turns out indeed to have it.
+ *
+ * We cannot use no-senders notifications for this purpose because the
+ * destination of these messages is not necessarily the receive site
+ * for the xmm object (and the send right count for memory object is
+ * cannot be used since arbitrary parties may be holding such rights).
+ */
+simpleroutine	xmm_remote_object_release(
+		host_priv	: host_priv_t;
+		memory_object	: mach_port_copy_send_t);
+
+/*
+ * Notification generated by xmm user layer that existing stack
+ * has fully terminated and that it is now okay to start using
+ * a new stack. (This prevents the init/terminate race.)
+ */
+simpleroutine	xmm_remote_object_terminate(
+		host_priv	: host_priv_t;
+		memory_object	: mach_port_copy_send_t);
+
+/*
+ * Perform some number of vm_map operations, supplying shadows for the
+ * objects to be mapped (to reduce number of xmm_get_shadow calls).
+ * Used to implement norma_task_create memory inheritance.
+ *
+ * XXX
+ * Avoid xmm_remote_object_by_memory_object_calls via a preinit call???
+ */
+routine	vm_map_vector(
+		host_priv	: host_priv_t;
+		map		: vm_task_t;
+		vector		: vm_map_vector_t;
+		memory_objects	: memory_object_vector_t;
+		shadows		: memory_object_vector_t;
+		parent_host	: mach_port_make_send_t);
+
+/*
+ * Find shadow object for given memory object, as well as size of
+ * the shadow object and whether it in turn is shadowed.
+ * Used to complete shadow chains started by vm_map_vector.
+ */
+routine	xmm_get_shadow(
+		host_priv	: host_priv_t;
+		memory_object	: mach_port_copy_send_t;
+	out	shadow		: mach_port_copy_send_t;
+	out	shadow_size	: vm_size_t;
+	out	shadow_soffset	: vm_offset_t;
+	out	shadow_shadowed	: boolean_t);
+
+/*
+ * Add reference to xmm object. Used for copy destruction prevention.
+ */
+routine		xmm_remote_object_reference(
+		host_priv	: host_priv_t;
+		memory_object	: mach_port_copy_send_t);
+
+/*
+ * Perform vm_remap operation on the host holding the source_task.
+ */
+routine	norma_vm_remap(
+		source_task	: vm_task_t;
+		source_address	: vm_offset_t;
+		target_task	: mach_port_t;
+	inout	target_address	: vm_offset_t;
+		size		: vm_size_t;
+		mask		: vm_offset_t;
+		anywhere	: boolean_t;
+		copy		: boolean_t;
+	out	cur_protection	: vm_prot_t;
+	out	max_protection	: vm_prot_t;
+		inheritance	: vm_inherit_t;
+		target_host	: mach_port_make_send_t);
+
+/*
+ * Perform end of vm_remap operation, supplying shadows for the
+ * objects to be mapped (to reduce number of norma_get_shadow calls).
+ */
+routine	vm_remap_vector(
+		host_priv	: host_priv_t;
+		map		: vm_task_t;
+	inout	address		: vm_offset_t;
+		size		: vm_size_t;
+		mask		: vm_offset_t;
+		anywhere	: boolean_t;
+		vector		: vm_map_vector_t;
+		memory_objects	: memory_object_vector_t;
+		shadows		: memory_object_vector_t;
+		parent_host	: mach_port_make_send_t);

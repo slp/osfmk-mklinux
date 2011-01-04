@@ -1,0 +1,149 @@
+/*
+ * Copyright (c) 1991-1998 Open Software Foundation, Inc. 
+ *  
+ * 
+ */
+/*
+ * MkLinux
+ */
+
+#undef NR_syscalls
+#define NR_syscalls 147
+
+struct sysent
+{
+	int  (*sys_call)();	
+	int  sys_narg;	
+};
+
+extern int sys_setup();
+extern int sys_exit();
+extern int sys_fork();
+extern int sys_read();
+extern int sys_write();
+extern int sys_open();
+extern int sys_close();
+extern int sys_waitpid();
+extern int sys_creat();
+extern int sys_link();
+extern int sys_unlink();
+extern int sys_execve();
+extern int sys_chdir();
+extern int sys_time();
+extern int sys_mknod();
+extern int sys_chmod();
+extern int sys_chown();
+extern int sys_break();
+extern int sys_stat();
+extern int sys_lseek();
+extern int sys_getpid();
+extern int sys_mount();
+extern int sys_umount();
+extern int sys_setuid();
+extern int sys_getuid();
+extern int sys_stime();
+extern int sys_ptrace();
+extern int sys_alarm();
+extern int sys_fstat();
+extern int sys_pause();
+extern int sys_utime();
+
+extern int sys_access();
+
+extern int sys_sync();
+extern int sys_kill();
+extern int sys_rename();
+extern int sys_mkdir();
+extern int sys_rmdir();
+extern int sys_dup();
+extern int sys_pipe();
+extern int sys_times();
+
+extern int sys_brk();
+extern int sys_setgid();
+extern int sys_getgid();
+
+extern int sys_geteuid();
+extern int sys_getegid();
+
+extern int sys_ioctl();
+extern int sys_fcntl();
+
+extern int sys_setpgid();
+
+extern int sys_umask();
+
+extern int sys_dup2();
+extern int sys_getppid();
+extern int sys_getpgrp();
+extern int sys_setsid();
+extern int sys_sigaction();
+
+extern int sys_setreuid();
+extern int sys_setregid();
+extern int sys_sigsuspend();
+extern int sys_sigpending();
+extern int sys_sethostname();
+extern int sys_setrlimit();
+extern int sys_getrlimit();
+extern int sys_getrusage();
+extern int sys_gettimeofday();
+extern int sys_settimeofday();
+extern int sys_getgroups();
+extern int sys_setgroups();
+extern int sys_select();
+extern int sys_symlink();
+extern int sys_readlink();
+
+extern int sys_swapon();
+extern int sys_reboot();
+extern int old_readdir();
+extern int sys_mmap();
+extern int sys_munmap();
+
+extern int sys_truncate();
+extern int sys_ftruncate();
+extern int sys_fchmod();
+extern int sys_fchown();
+extern int sys_getpriority();
+extern int sys_setpriority();
+
+extern int sys_statfs();
+extern int sys_fstatfs();
+extern int sys_socketcall();
+
+extern int sys_setitimer();
+extern int sys_getitimer();
+extern int sys_newstat();
+extern int sys_newlstat();
+extern int sys_newfstat();
+
+extern int sys_vhangup();
+
+extern int sys_wait4();
+extern int sys_swapoff();
+extern int sys_sysinfo();
+extern int sys_ipc();
+extern int sys_fsync();
+extern int sys_sigreturn();
+
+extern int sys_uname();
+
+extern int sys_mprotect();
+
+extern int sys_sigprocmask();
+
+extern int sys_getpgid();
+extern int sys_fchdir();
+
+extern int sys_setfsuid();
+extern int sys_setfsgid();
+
+extern int sys_getdents();
+
+extern int sys_flock();
+
+extern int sys_readv();
+extern int sys_writev();
+extern int sys_getsid();
+

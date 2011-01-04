@@ -1,0 +1,92 @@
+#
+# Copyright 1991-1998 by Open Software Foundation, Inc. 
+#              All Rights Reserved 
+#  
+# Permission to use, copy, modify, and distribute this software and 
+# its documentation for any purpose and without fee is hereby granted, 
+# provided that the above copyright notice appears in all copies and 
+# that both the copyright notice and this permission notice appear in 
+# supporting documentation. 
+#  
+# OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# FOR A PARTICULAR PURPOSE. 
+#  
+# IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+# NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+# WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+#
+# MkLinux
+replace object_base ${sandbox_base}/obj/${target_machine}
+replace export_base ${sandbox_base}/export/${target_machine}
+replace source_base ${sandbox_base}/src
+replace setenv EXPORTBASE ${export_base}
+replace setenv SOURCEBASE ${source_base}
+replace setenv MAKESYSPATH ${source_base}/makedefs:${MAKESYSPATH}
+replace setenv SOURCEDIR ${BACKED_SOURCEDIR}
+replace setenv BACKED_SOURCEDIR ${source_base}:${SOURCEDIR}
+replace setenv MACH3_INCDIRS "-I${export_base}/include -I${export_base}/include/sa_mach ${MACH3_INCDIRS}"
+replace setenv MACH3_LIBDIRS "-L${export_base}/lib ${MACH3_LIBDIRS}"
+replace setenv INCDIRS "${MACH3_INCDIRS}"
+replace setenv LIBDIRS "${MACH3_LIBDIRS}"
+
+# To change a specific tool or tool prefix to point
+# to the ./tools subdir in your sandbox, substitute
+#
+# ${sandbox_base}/tools/${target_machine} for ${tools_base}
+#
+# on the appropriate line below. Currently, with the use
+# of link in tools_base, the default is to get all tools
+# from the backing tree.
+#
+# Define common base for subsequent tools:
+
+replace tools_base ${sandbox_base}/link/tools/${MACHINE}/${HOST_MACHINE}_osf1
+on_os linux replace tools_base ${sandbox_base}/tools/${MACHINE}/${HOST_MACHINE}_linux
+
+replace setenv MIGCC "${tools_base}/elf/gcc"
+replace setenv MIGCOM ${tools_base}/hostbin/migcom
+# these hostbin tools for xkernel only
+replace setenv COMPOSE "${tools_base}/hostbin/compose"
+replace setenv PTBLDUMP "${tools_base}/hostbin/ptbldump"
+
+replace setenv TARGET_EXEC_PREFIX ${tools_base}/hostbin/
+replace setenv ELF_CC_EXEC_PREFIX "${tools_base}/elf/"
+replace setenv MACHO_CC_EXEC_PREFIX "${tools_base}/macho/"
+replace setenv COFF_CC_EXEC_PREFIX "${tools_base}/coff/"
+replace setenv A_OUT_CC_EXEC_PREFIX "${tools_base}/a_out/"
+replace setenv SOM_CC_EXEC_PREFIX "${tools_base}/som/"
+
+#
+# HP-PA specific
+#
+replace setenv AS ${tools_base}/som/gas
+replace setenv ST_CCAT ${tools_base}/hostbin/cc.cat
+replace setenv ST_LINKCAT ${tools_base}/hostbin/ld.cat
+
+on hp_pa on_os linux target hp_pa replace setenv AS gas
+
+# For PARAGON  builds
+# Also check the Buildconf file
+
+target i860 replace setenv i860_COFF_LIBFLAGS "-L${sandbox_base}/export/intel860/usr/ccs/lib -L${tools_base}/coff/icc-lib"
+target i860 replace setenv MACHO_CC_EXEC_PREFIX "${tools_base}/coff/icc-bin/"
+target i860 replace setenv COFF_CC_EXEC_PREFIX "${tools_base}/coff/icc-bin/"
+target i860 replace setenv COFF_NM_EXEC_PREFIX "${tools_base}/coff/"
+target i860 replace setenv HOST_CC "${tools_base}/macho/gcc"
+target i860 replace setenv MIGCC "${tools_base}/macho/gcc"
+target i860 replace setenv PATH "${tools_base}/coff/icc-bin:${PATH}"
+
+#
+# Native builds on linux use the native compiler
+#
+
+on i386 on_os linux target i386     replace setenv ELF_CC_EXEC_PREFIX ""
+on ppc  on_os linux target powermac replace setenv ELF_CC_EXEC_PREFIX ""
+on hp_pa  on_os linux target hp_pa replace setenv ELF_CC_EXEC_PREFIX ""
+
+on_os linux replace setenv MIGCC gcc
+on_os linux replace setenv CPP "cc -E"
+on_os linux replace setenv _ELF_PIC_ ""

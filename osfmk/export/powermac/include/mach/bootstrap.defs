@@ -1,0 +1,82 @@
+/*
+ * Copyright 1991-1998 by Open Software Foundation, Inc. 
+ *              All Rights Reserved 
+ *  
+ * Permission to use, copy, modify, and distribute this software and 
+ * its documentation for any purpose and without fee is hereby granted, 
+ * provided that the above copyright notice appears in all copies and 
+ * that both the copyright notice and this permission notice appear in 
+ * supporting documentation. 
+ *  
+ * OSF DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE 
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ * FOR A PARTICULAR PURPOSE. 
+ *  
+ * IN NO EVENT SHALL OSF BE LIABLE FOR ANY SPECIAL, INDIRECT, OR 
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM 
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN ACTION OF CONTRACT, 
+ * NEGLIGENCE, OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION 
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+/*
+ * MkLinux
+ */
+
+subsystem
+#if	KERNEL_SERVER
+	KernelServer
+#endif	/* KERNEL_SERVER */
+		bootstrap 999999;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+ServerPrefix do_;
+
+/*
+ *	The old form of the bootstrap_privileged_ports RPC
+ *	is not expressible in Mig syntax, because the reply
+ *	message doesn't have a return code.
+ */
+skip;	/* old bootstrap_privileged_ports */
+
+skip;	/* other old bootstrap_privileged_ports */
+
+/*
+ *	A task can make this call on its bootstrap port
+ *	to get its privileged ports.
+ */
+routine bootstrap_ports(
+		bootstrap		: mach_port_t;
+	out	priv_host		: mach_port_t;
+	out	priv_device		: mach_port_t;
+	out	wired_ledger		: mach_port_t;
+	out	paged_ledger		: mach_port_t;
+	out	host_security		: mach_port_t);
+
+/*
+ *	A task can use this call to get its argument strings.
+ */
+routine bootstrap_arguments(
+		bootstrap		: mach_port_t;
+		task			: task_t;
+	out	arguments		: pointer_t, Dealloc);
+
+/*
+ *	A task can use this call to get its environment strings.
+ */
+routine bootstrap_environment(
+		bootstrap		: mach_port_t;
+		task			: task_t;
+	out	environment		: pointer_t, Dealloc);
+
+/*
+ *	A task can use this call to indicate to its bootstrapper that it
+ *	is done with its startup processing.  This call is used when the
+ *	task is important enough so that the bootstrap process wants to
+ *	wait for it to come up before continuing with other things.
+ */
+simpleroutine bootstrap_completed(
+		bootstrap		: mach_port_t;
+		task			: task_t);
+
