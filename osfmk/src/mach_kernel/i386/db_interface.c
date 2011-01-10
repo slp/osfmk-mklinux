@@ -704,7 +704,7 @@ db_check_access(
 	int		size,
 	task_t		task)
 {
-	register	n;
+	register int	n;
 	unsigned	kern_addr;
 
 	if (task == kernel_task || task == TASK_NULL) {
@@ -789,7 +789,7 @@ db_task_name(
 	task_t		task)
 {
 	register char *p;
-	register n;
+	register int n;
 	unsigned vaddr, kaddr;
 
 	vaddr = DB_USER_STACK_ADDR;
@@ -974,7 +974,7 @@ void
 lock_kdb(void)
 {
 	int		my_cpu;
-	register	i;
+	register int	i;
 	extern void	kdb_console(void);
 
 #if	NCPUS > 1

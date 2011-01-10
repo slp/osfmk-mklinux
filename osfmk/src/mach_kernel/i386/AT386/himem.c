@@ -66,7 +66,7 @@ void
 himem_reserve(
 	int		npages)
 {
-	register		i = 0;
+	register int		i = 0;
 	vm_page_t		free_head = VM_PAGE_NULL;
 	vm_page_t		low;
 	hil_t			hil;

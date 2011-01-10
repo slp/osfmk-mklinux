@@ -1372,7 +1372,7 @@ void hd_read_id (
 	hd_ctrl_t	ctrl_p = hd_ctrl[ctrl];
 	int		addr = ctrl_p->address;
 	hd_id_t		id;
-	register 	i;
+	register int 	i;
 	u_long		n;
 	u_char		*tbl;
 	hdisk_t		parm;

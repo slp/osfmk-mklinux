@@ -1258,7 +1258,7 @@ aha_start_scsi(
 	aha_ccb_t	*ccb)
 {
 	register aha_mbox_t	*mb;
-	register		idx;
+	register int		idx;
 	vm_offset_t		phys;
 	aha_mbox_t		mbo;		
 	spl_t			s;
@@ -1305,7 +1305,7 @@ aha_intr(
 {
 	register aha_softc_t	aha;
 	register unsigned int	port;
-	register		csr, intr;
+	register int		csr, intr;
 #if	MAPPABLE
 	extern boolean_t	rz_use_mapped_interface;
 

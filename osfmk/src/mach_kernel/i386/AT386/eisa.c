@@ -45,7 +45,7 @@ is_eisa_board(
 	int			board,
 	eisa_board_id_t		*bid)
 {		
-	register i;
+	register int i;
 
 	outb(EISA_ID_REG(board, EISA_ID_REG_0), 0xff);
 	if(inb(EISA_ID_REG(board, EISA_ID_REG_0)) & 0x80)
