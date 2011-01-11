@@ -51,7 +51,7 @@
 #include <platforms.h>
 #include <mach_ldebug.h>
 #include <i386/asm.h>
-#include <assym.s>
+#include <assym.S>
 #include <kern/etap_options.h>
 
 

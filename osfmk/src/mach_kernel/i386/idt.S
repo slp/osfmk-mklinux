@@ -81,7 +81,7 @@
 /*
  */
 #include <i386/asm.h>
-#include <assym.s>
+#include <assym.S>
 #include <mach_kdb.h>
 
 /*

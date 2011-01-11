@@ -197,7 +197,7 @@
 #include <i386/eflags.h>
 #include <i386/proc_reg.h>
 #include <i386/trap.h>
-#include <assym.s>
+#include <assym.S>
 #include <mach/exception.h>
 
 #define	PREEMPT_DEBUG_LOG 0

@@ -137,7 +137,7 @@ WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <platforms.h>
 #include <mp_v1_1.h>
 
-#include <assym.s>
+#include <assym.S>
 #include <i386/asm.h>
 #include <i386/ipl.h>
 #include <i386/pic.h>

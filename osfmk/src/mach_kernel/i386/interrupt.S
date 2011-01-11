@@ -158,7 +158,7 @@ WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <i386/asm.h>
 #include <i386/ipl.h>
 #include <i386/pic.h>
-#include <assym.s>
+#include <assym.S>
 
 #if	AT386
 #include <i386/AT386/mp/mp.h>

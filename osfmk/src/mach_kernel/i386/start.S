@@ -187,7 +187,7 @@
 
 #include <i386/asm.h>
 #include <i386/proc_reg.h>
-#include <assym.s>
+#include <assym.S>
 
 #if	NCPUS > 1
 
