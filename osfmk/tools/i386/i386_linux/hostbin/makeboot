@@ -1,0 +1,150 @@
+#!/bin/sh
+
+if [ -z $SANDBOX ]; then
+	echo "Must be working on a sandbox, sorry"
+	exit 2
+fi	
+
+OBJECT_BASE=`sbinfo | grep "object_base:" | awk '{print $2}'`
+
+if [ ! -d $OBJECT_BASE ] ; then
+	echo -n "Can't find the sandbox's object base, your sandbox is"
+	echo "probably misconfigured"
+	exit 2
+fi
+
+configs=`ls $OBJECT_BASE/mach_kernel/[A-Z+_]*/mach_kernel.*|grep -v '\.debug$'`
+nconfigs=`echo $configs | wc -w`
+
+if [ $nconfigs -eq 0 ] ; then
+	echo "Can't find any ready-built kernels, sorry"
+	exit 2
+fi
+
+if [ $nconfigs -eq 1 ]; then
+	if [ -z $MACH_KERNEL_CONFIG ]; then
+		MACH_KERNEL_CONFIG=`echo $configs | sed 's/^.*\.//'`
+	fi
+else
+	echo -n "makeboot has found these kernel configurations : "
+	for i in $configs ; do
+		echo -n $i | sed 's/[^ ]*mach_kernel\.//g'|grep -v '\.debug$'
+		echo -n " "
+	done
+	echo
+fi
+
+until [ -f $OBJECT_BASE/mach_kernel/$MACH_KERNEL_CONFIG/mach_kernel.$MACH_KERNEL_CONFIG ] ; do
+	echo -n "Enter MACH_KERNEL_CONFIG : "
+	read MACH_KERNEL_CONFIG
+done
+
+if [ -z $BOOTSTRAP_TASK ]; then
+	BOOTSTRAP_TASK=bootstrap/bootstrap
+fi
+
+if [ ! -f $OBJECT_BASE/$BOOTSTRAP_TASK ]; then
+	echo "Can't find bootstrap task $OBJECT_BASE/$BOOTSTRAP_TASK, sorry"
+	exit 2
+fi
+
+echo "Building make-booted $MACH_KERNEL_CONFIG kernel image"
+cd $OBJECT_BASE/mach_kernel/$MACH_KERNEL_CONFIG
+if [ ! -x mach_kernel.$MACH_KERNEL_CONFIG ] ; then
+	echo "ERROR! executable kernel file mach_kernel.$MACH_KERNEL_CONFIG not found"
+	exit 2
+fi
+
+echo -n "copy... "
+cp mach_kernel.$MACH_KERNEL_CONFIG Mach_Kernel.tmp
+case $MACH_KERNEL_CONFIG in
+    *KDB*)
+	 echo -n "no strip...";;
+    *)
+	echo -n "strip... "
+	if [ `uname -m` = 'ppc' ]; then
+		strip Mach_Kernel.tmp
+	else
+		strip.ppc Mach_Kernel.tmp
+	fi;;
+esac
+echo -n "header... "
+ls -l Mach_Kernel.tmp | awk '{printf "MACH_BOOT_IMAGE %-16d",$5}' > Mach_Kernel
+echo -n "kernel... "
+cat Mach_Kernel.tmp >> Mach_Kernel
+rm Mach_Kernel.tmp
+if [ $BOOTSTRAP_TASK ]; then
+	BOOTSTRAP=$OBJECT_BASE/$BOOTSTRAP_TASK
+	if [ ! -e $BOOTSTRAP ] ; then
+		echo "ERROR! bootstrap file $BOOTSTRAP not found"
+		exit 2
+	fi
+	echo -n "bootstrap... "
+	cp $BOOTSTRAP $BOOTSTRAP.stripped
+	if [ `uname -m` = 'ppc' ]; then
+		strip	$BOOTSTRAP.stripped
+	else
+		strip.ppc $BOOTSTRAP.stripped
+	fi
+	cat $BOOTSTRAP.stripped >> Mach_Kernel
+	rm $BOOTSTRAP.stripped
+fi
+echo "done."
+
+echo
+
+if type hdir > /dev/null 2>&1; then
+	echo -n
+else
+	echo You must now install the following file in the Extensions folder
+	echo under the MacOS System Folder using the name "Mach Kernel".
+	echo
+	echo "  "$PWD/Mach_Kernel
+	echo
+	echo The easiest way to do this is to install the hfstools under
+	echo linux and echo run this script again after hfsmount-ing the
+	echo MacOS partition and changing the hfs current working directory
+	echo to the MacOS ":System Folder:Extensions" you boot from.
+	exit 1
+fi
+
+if [ `hdir | grep -c 'Mach Kernel'` -gt 0 ]; then
+	reply=""
+	while [ -z $reply ] ; do
+		echo -n "Install kernel image in MacOS's `hpwd` [y/n] ? : "
+		read reply
+	done
+	if [ $reply = 'y' ]; then
+		if [ `hdir | grep -c 'Mach Kernel$'` -gt 0 ]; then
+			echo -n "delete previous backup... "
+			hdel ":Mach Kernel - backup" 2>&1 >/dev/null
+			echo -n "backup current image... "
+			hrename "Mach Kernel" "Mach Kernel - backup"
+		fi
+		echo -n "install new image... "
+		hcopy -r $PWD/Mach_Kernel ":Mach Kernel"
+		echo done.
+		echo
+		echo 'You may now use "shutdown -r now" to reboot with the new kernel'
+		exit 0
+	else
+		echo "Not installing kernel under MacOS System Folder's Extensions"
+		exit 1
+	fi
+fi
+	
+
+echo
+echo "You don't have MacOS's System Folder:Extensions as the current working"
+echo "directory for the hfstools. Please copy the file"
+echo
+echo "  "$PWD/Mach_Kernel
+echo
+echo 'to the MacOS ":System Folder:Extensions" using the hfs tools as'
+echo 'shown below, making sure to mount the correct partition:'
+echo 
+echo '  hmount /dev/sdc3  THIS MUST BE YOUR MACOS BOOT PARTITION'
+echo '  hcd ":System Folder:Extensions"'
+echo '  hcopy -r $PWD/Mach_Kernel "Mach Kernel"'
+exit 1
+
