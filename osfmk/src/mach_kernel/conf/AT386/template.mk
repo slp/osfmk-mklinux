@@ -227,8 +227,8 @@ TARGET_MACHINE_CFLAGS=\
 	-Dvolatile\=__volatile__ -Dsigned\=__signed__
 .endif
 
-LOCORE_DEPS=	assym.S i386/start.S
-		i386/locore.S 386/cswitch.S
+LOCORE_DEPS=	assym.S i386/start.S \
+		i386/locore.S i386/cswitch.S
 
 locore.S: ${LOCORE_DEPS}
 	cat ${.ALLSRC} >locore.S
@@ -318,7 +318,7 @@ ${SOBJS} locore.o: $${.TARGET:.o=.S}
 	${KCC} -c ${.TARGET:.o=.s}
 	${RM} ${_RMFLAGS_} ${.TARGET:.o=.pp} ${.TARGET:.o=.s}
 
-${SOBJS}: assym.s
+${SOBJS}: assym.S
 
 #
 # Temporarily disable strict ANSI checking on the SCSI subsystem.

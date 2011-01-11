@@ -207,7 +207,7 @@ scsi_get_dos_parms(
 	dev_ops_t	ops;
 	int		unit;
 	char 		devname[16];
-	register 	dos_unit;
+	register int 	dos_unit;
 
 	strcpy(devname, "disk");
 

@@ -768,7 +768,7 @@ test_delay(void);
 void
 test_delay(void)
 {
-  	register i;
+  	register int i;
 
 	for (i = 0; i < 10; i++)
 		printf("%d, %d\n", i, measure_delay(i));
