@@ -30,20 +30,20 @@
 ENTRY(strcat)
 	pushl	%edi
 	pushl	%esi
-	movl	8+S_ARG0,%esi		/ load dst into %esi
+	movl	8+S_ARG0,%esi		/* load dst into %esi */
 	cld
 0:	lodsb
-	testb	%al,%al			/ find the nul byte in dst
+	testb	%al,%al			/* find the nul byte in dst */
 	jne	0b
-	movl	%esi,%edi		/ now move into %edi
-	decl	%edi			/ backup to nul byte
-	movl	8+S_ARG1,%esi		/ load src into %esi
+	movl	%esi,%edi		/* now move into %edi */
+	decl	%edi			/* backup to nul byte */
+	movl	8+S_ARG1,%esi		/* load src into %esi */
 0:	lodsb
 	stosb
-	testb	%al,%al			/ copy to nul byte in src
+	testb	%al,%al			/* copy to nul byte in src */
 	jne	0b
 	popl	%esi
 	popl	%edi
-	movl	S_ARG0,%eax		/ load dst as return value
+	movl	S_ARG0,%eax		/* load dst as return value */
 	ret
 END(strcat)

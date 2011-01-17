@@ -28,30 +28,30 @@
  * char *strncat(char *dst, const char *src, size_t cnt)
  */
 ENTRY(strncat)
-	movl	S_ARG2,%ecx		/ load cnt into %ecx
+	movl	S_ARG2,%ecx		/* load cnt into %ecx */
 	testl	%ecx,%ecx
 	je	2f
 	pushl	%edi
 	pushl	%esi
-	movl	8+S_ARG0,%esi		/ load dst into %esi
+	movl	8+S_ARG0,%esi		/* load dst into %esi */
 	cld
 0:	lodsb
-	testb	%al,%al			/ find the nul byte in dst
+	testb	%al,%al			/* find the nul byte in dst */
 	jne	0b
-	movl	%esi,%edi		/ now move into %edi
-	decl	%edi			/ backup to nul byte
-	movl	8+S_ARG1,%esi		/ load src into %esi
+	movl	%esi,%edi		/* now move into %edi */
+	decl	%edi			/* backup to nul byte */
+	movl	8+S_ARG1,%esi		/* load src into %esi */
 0:	lodsb
 	stosb
-	testb	%al,%al			/ copy until nul byte in src
+	testb	%al,%al			/* copy until nul byte in src */
 	je	1f
 	decl	%ecx
 	testl	%ecx,%ecx
 	jne	0b
-	xorb	%al,%al			/ else need to add a nul byte
+	xorb	%al,%al			/* else need to add a nul byte */
 	movb	%al,-1(%edi)
 1:	popl	%esi
 	popl	%edi
-2:	movl	S_ARG0,%eax		/ load dst as return value
+2:	movl	S_ARG0,%eax		/* load dst as return value */
 	ret
 END(strncat)

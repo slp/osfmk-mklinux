@@ -71,12 +71,12 @@ ENTRY(memcpy)
 	movl	8+S_ARG1,%esi
 0:	movl	8+S_ARG2,%edx
 	cld
-/ move longs
+/* move longs */
 	movl	%edx,%ecx
 	sarl	$2,%ecx
 	rep
 	movsl
-/ move bytes
+/* move bytes */
 	movl	%edx,%ecx
 	andl	$3,%ecx
 	rep

@@ -61,12 +61,12 @@ ENTRY(bzero)
 	movl	B_ARG0,%edi
 	xorl	%eax,%eax
 	cld
-/ zero longs
+/* zero longs */
 	movl	%edx,%ecx
 	shrl	$2,%ecx
 	rep
 	stosl
-/ zero bytes
+/* zero bytes */
 	movl	%edx,%ecx
 	andl	$3,%ecx
 	rep

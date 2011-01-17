@@ -30,15 +30,15 @@
 ENTRY(strcpy)
 	pushl	%edi
 	pushl	%esi
-	movl	8+S_ARG0,%edi		/ load dst into %edi
-	movl	8+S_ARG1,%esi		/ load src into %edi
+	movl	8+S_ARG0,%edi		/* load dst into %edi */
+	movl	8+S_ARG1,%esi		/* load src into %edi */
 	cld
 0:	lodsb
 	stosb
-	testb	%al,%al			/ copy until nul byte in src
+	testb	%al,%al			/* copy until nul byte in src */
 	jne	0b
 	popl	%esi
 	popl	%edi
-	movl	S_ARG0,%eax		/ load dst as return value
+	movl	S_ARG0,%eax		/* load dst as return value */
 	ret
 END(strcpy)

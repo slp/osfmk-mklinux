@@ -33,12 +33,12 @@ ENTRY(bzero)
 	movl	4+S_ARG1,%edx		/* cnt */
 	xorl	%eax,%eax
 	cld
-/ zero longs
+/* zero longs */
 	movl	%edx,%ecx
 	shrl	$2,%ecx
 	rep
 	stosl
-/ zero bytes
+/* zero bytes */
 	movl	%edx,%ecx
 	andl	$3,%ecx
 	rep
@@ -60,12 +60,12 @@ ENTRY(memset)
 	shll	$16,%eax
 	movw	%cx,%ax	
 	cld
-/ zero longs
+/* zero longs */
 	movl	%edx,%ecx
 	shrl	$2,%ecx
 	rep
 	stosl
-/ zero bytes
+/* zero bytes */
 	movl	%edx,%ecx
 	andl	$3,%ecx
 	rep
