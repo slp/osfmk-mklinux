@@ -212,6 +212,7 @@
 #include <i386/misc_protos.h>
 #include <i386/cpuid.h>
 #include <i386/rtclock_entries.h>
+#include <i386/multiboot.h>
 #include <i386/AT386/mp/mp.h>
 #include <i386/AT386/eisa.h>
 #include <i386/AT386/eisa_entries.h>
@@ -262,7 +263,13 @@ vm_offset_t	hole_start, hole_end;
 vm_offset_t	avail_next;
 unsigned int	avail_remaining;
 
-/* parameters passed from bootstrap loader */
+/* parameters passed from GRUB */
+int mb_info_size = sizeof(struct multiboot_info);
+struct multiboot_info mb_info;
+extern vm_offset_t boot_start;
+extern vm_size_t boot_size;
+extern pt_entry_t *kpde;
+
 int		cnvmem = 0;		/* must be in .data section */
 int		extmem = 0;
 
@@ -277,6 +284,7 @@ int		halt_in_debugger = 0;
 extern int	cons_is_com1;
 
 void		parse_arguments(void);
+void		parse_multiboot(void);
 const char	*getenv(const char *);
 
 #define 	BOOT_LINE_LENGTH 160
@@ -293,6 +301,11 @@ int		boottype = 0;
 void
 machine_startup(void)
 {
+	/*
+	 * Prepare multiboot information
+	 */
+	parse_multiboot();
+	
 	/*
 	 * Parse startup arguments
 	 */
@@ -349,6 +362,34 @@ machine_startup(void)
 
 extern vm_offset_t kern_args_start;
 extern vm_size_t kern_args_size;
+extern vm_offset_t boot_args_start;
+extern vm_size_t boot_args_size;
+
+void
+parse_multiboot(void)
+{
+	struct multiboot_module *mb_module;
+
+	/* Get memory info */
+	cnvmem = mb_info.mem_lower;
+	extmem = mb_info.mem_upper;
+
+	/* 
+         * Get information about the bootstrap. Currently we only
+	 * support loading one module.
+	 */
+	mb_module = (struct multiboot_module *) mb_info.mods_addr;
+	boot_start = mb_module->mod_start;
+	boot_size = mb_module->mod_end - mb_module->mod_start;
+
+	kern_args_start = (vm_offset_t) &mb_info.cmdline;
+	kern_args_size = strlen((char *) &kern_args_start);
+
+	/*
+	boot_args_start = (vm_offset_t) &mb_module->cmdline;
+	boot_args_size = strlen(boot_args_start);
+	*/
+}
 
 /*
  * Parse command line arguments.
@@ -466,7 +507,7 @@ machine_init(void)
 	int unit;
 	const char *p;
 	int n;
-	char bootdev_name[10] = "disk";
+	char bootdev_name[10] = "hd0s1";
 
 	/*
 	 * Adjust delay count before entering drivers

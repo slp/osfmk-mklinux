@@ -199,6 +199,7 @@
 #include <mach/mach_server.h>
 #include <mach/mach_port_server.h>
 #include <mach/bootstrap_server.h>
+#include <mach/elf.h>
 
 #include <device/device_port.h>
 #include <device/ds_routines.h>
@@ -291,67 +292,62 @@ static void
 do_bootstrap_compat(void)
 {
 	char *startup_flags_begin = 0;
+	Elf32_Ehdr *ehdr = (Elf32_Ehdr *) boot_start;
+	Elf32_Phdr *phdr, *ph;
+	vm_offset_t entry;
+	int result, i;
+	int bss_start, bss_size;
 
-	struct loader_info *lp = (struct loader_info *)load_info_start;
-
-	if (load_info_start == 0)	/* if we don't have load info */
+	if (boot_size == 0)		/* if we don't have a bootstrap */
 		return;			/* there isn't anything we can do */
 
-#ifndef hp_pa
-	kern_args_start = (vm_offset_t) kernel_args_buf;
-	kern_args_size = strlen(kernel_args_buf) + 1;
+	entry = (vm_offset_t) ehdr->e_entry;
+	phdr = (Elf32_Phdr *) (boot_start + ehdr->e_phoff);
+	
+	printf("entry: 0x%x\n", entry);
+	printf("ph offset: 0x%x\n", ehdr->e_phoff);
+	printf("phdr: 0x%x\n", phdr);
+        printf("Looking for program sections\n");
+	printf("Theorical number of sections: %d\n", ehdr->e_phnum);
 
-	boot_sym_start = boot_start + lp->sym_offset[0];
-	boot_sym_size = lp->sym_size[0];
+	for (i = 0, ph = phdr; i < ehdr->e_phnum; i++, ph++) {
+		printf("Loop\n");
+		switch ((int)ph->p_type) {
+		case PT_LOAD:
+			if (ph->p_flags == (PF_R | PF_X)) {
+				printf("Found text region\n");
+				regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_EXECUTE;
+				regions[boot_region_count].addr = trunc_page(ph->p_vaddr);
+				regions[boot_region_count].size = round_page(ph->p_filesz);
+				regions[boot_region_count].offset = trunc_page(ph->p_offset);
+				regions[boot_region_count].mapped = TRUE;
+			}
+			else if (ph->p_flags == (PF_R | PF_W)) {
+				printf("Found data region\n");
+				regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_WRITE;
+				regions[boot_region_count].addr = trunc_page(ph->p_vaddr);
+				regions[boot_region_count].size = round_page(ph->p_memsz);
+				regions[boot_region_count].offset = trunc_page(ph->p_offset);
+				regions[boot_region_count].mapped = TRUE;
+				bzero((char *) (boot_start+ph->p_offset+ph->p_filesz),
+					ph->p_memsz - ph->p_filesz);
+				bss_start = ph->p_vaddr + ph->p_filesz;
+				bss_size = ph->p_memsz - ph->p_filesz;
+			}
+			else {
+				printf("Found PT_LOAD region with unknown flags\n");
+				continue;
+			}
 
-	boot_args_start = (vm_offset_t) boot_args_buf;
-
-	/*
- 	 * If boot_args_size is already set, then parameters 
-	 * have been added to boot_args_buf. strlen() cannot
-	 * be used to calculate the correct size because parameters
-	 * are all NULL terminated.
-	 */
-	if (boot_args_size == 0) {
-		boot_args_size = strlen(boot_args_buf) + 1;
+			boot_region_count++;
+			break;
+		default:
+			printf("Found unknown section: 0x%x\n", ph->p_type);
+			break;
+		}
 	}
 
-#endif /* hp_pa */
-
-	assert(page_aligned(lp->text_start));
-	assert(page_aligned(lp->text_offset));
-	regions[boot_region_count].addr = lp->text_start;
-	regions[boot_region_count].size = round_page(lp->text_size);
-	regions[boot_region_count].offset = lp->text_offset;
-	regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_EXECUTE;
-	regions[boot_region_count].mapped = TRUE;
-	boot_region_count++;
-
-	assert(page_aligned(lp->data_start));
-	assert(page_aligned(lp->data_offset));
-	regions[boot_region_count].addr = lp->data_start;
-	regions[boot_region_count].size = round_page(lp->data_size);
-	regions[boot_region_count].offset = lp->data_offset;
-	regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE;
-	regions[boot_region_count].mapped = TRUE;
-	boot_region_count++;
-
-	if (round_page(lp->data_size) < lp->data_size+lp->bss_size) {
-		regions[boot_region_count].addr
-			= lp->data_start + lp->data_size;
-		regions[boot_region_count].size = round_page(lp->bss_size);
-		regions[boot_region_count].offset = 0;
-		regions[boot_region_count].prot
-			= VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE;
-		regions[boot_region_count].mapped = FALSE;
-		boot_region_count++;
-	}
-
-	/*
-	 * Adjust boot_size from makeboot-ed image to reflect only the
-	 * pages that are part of text & data.
-	 */
-	boot_size = lp->data_offset + round_page(lp->data_size);
+	printf("I've found: %d sections\n", boot_region_count);
 
 	regions[boot_region_count].addr = STACK_BASE;
 	regions[boot_region_count].size = STACK_SIZE;
@@ -364,12 +360,12 @@ do_bootstrap_compat(void)
 
 	bzero((char *)&thread_state, sizeof(thread_state));
 #if	defined(i386)
-	thread_state.eip = lp->entry_1;
+	thread_state.eip = entry;
 	thread_state.esp = STACK_PTR;
 	boot_thread_state_count = i386_THREAD_SYSCALL_STATE_COUNT;
 #endif	/* defined(i386) */
 #if	defined(i860)
-	thread_state.pc =  lp->entry_1;
+	thread_state.pc =  entry;
 	thread_state.sp =  STACK_PTR;
 	boot_thread_state_count = i860_THREAD_STATE_COUNT;
 #endif	/* defined(i860) */
@@ -384,6 +380,7 @@ do_bootstrap_compat(void)
 	boot_thread_state_flavor = THREAD_SYSCALL_STATE;
 	boot_thread_state = (thread_state_t) &thread_state;
 
+#if 0
 #ifndef hp_pa
 	env_start = (vm_offset_t) env_buf;
 	env_size = 0;
@@ -494,6 +491,7 @@ do_bootstrap_compat(void)
 
         }		
 #endif /* !hp_pa */
+#endif
 }
 #endif /* SYS_REBOOT_COMPAT */
 
