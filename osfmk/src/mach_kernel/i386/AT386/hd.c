@@ -1127,7 +1127,9 @@ hderror(
 	else {
 		/* lets do a recalibration */
 		waitcontroller(ctrl);
-		ctrl_p->state.restore_request = 1;
+		/* XXX This hangs with qemu, disable it for now */
+		/* ctrl_p->state.restore_request = 1; */
+		ctrl_p->state.restore_request = 0;
 		outb(PORT_PRECOMP(addr), parm->precomp>>2);
 		outb(PORT_NSECTOR(addr), parm->nsec);
 		outb(PORT_SECTOR(addr), ctrl_p->state.sector);
@@ -1378,7 +1380,9 @@ void hd_read_id (
 	hdisk_t		parm;
 
 	waitcontroller(ctrl);
-	ctrl_p->state.restore_request = 1;
+	/* XXX This hangs with qemu, disable it for now */
+	/* ctrl_p->state.restore_request = 1; */
+	ctrl_p->state.restore_request = 0;
 	outb(PORT_PRECOMP(addr), 0);
 	outb(PORT_NSECTOR(addr), 0);
 	outb(PORT_SECTOR(addr), 0);
