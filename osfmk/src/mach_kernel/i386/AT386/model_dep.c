@@ -382,8 +382,8 @@ parse_multiboot(void)
 	boot_start = mb_module->mod_start;
 	boot_size = mb_module->mod_end - mb_module->mod_start;
 
-	kern_args_start = (vm_offset_t) &mb_info.cmdline;
-	kern_args_size = strlen((char *) &kern_args_start);
+	kern_args_start = mb_info.cmdline;
+	kern_args_size = strlen((char *) kern_args_start);
 
 	/*
 	boot_args_start = (vm_offset_t) &mb_module->cmdline;
@@ -398,15 +398,14 @@ void
 parse_arguments(void)
 {
 	char *p = (char *) kern_args_start;
-	char *endp = (char *) kern_args_start + kern_args_size - 1;
+	char *endp = p + kern_args_size - 1;
 	char ch;
 
 	if (kern_args_start == 0)
 	    return;
+
 	while (p < endp) {
 	    if (*p++ != '-') {
-		while (*p++ != '\0')
-		    ;
 		continue;
 	    }
 	    while (ch = *p++) {
