@@ -158,8 +158,8 @@
 #define VM_MIN_KERNEL_ADDRESS	((vm_offset_t) 0x00000000U)
 #define VM_MAX_KERNEL_ADDRESS	((vm_offset_t) 0x3fffffffU)
 
-#define VM_MIN_KERNEL_LOADED_ADDRESS	((vm_offset_t) 0xE0000000U)
-#define VM_MAX_KERNEL_LOADED_ADDRESS	((vm_offset_t) 0xFFFFFFFFU)
+#define VM_MIN_KERNEL_LOADED_ADDRESS	((vm_offset_t) 0x20000000U)
+#define VM_MAX_KERNEL_LOADED_ADDRESS	((vm_offset_t) 0x3FFFFFFFU)
 
 #ifdef	MACH_KERNEL
 

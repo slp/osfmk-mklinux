@@ -265,9 +265,11 @@ unsigned int	avail_remaining;
 
 /* parameters passed from GRUB */
 int mb_info_size = sizeof(struct multiboot_info);
-struct multiboot_info mb_info;
+struct multiboot_info mb_info = { 0 };
 extern vm_offset_t boot_start;
 extern vm_size_t boot_size;
+extern vm_offset_t exec_start;
+extern vm_size_t exec_size;
 extern pt_entry_t *kpde;
 
 int		cnvmem = 0;		/* must be in .data section */
@@ -364,12 +366,11 @@ extern vm_offset_t kern_args_start;
 extern vm_size_t kern_args_size;
 extern vm_offset_t boot_args_start;
 extern vm_size_t boot_args_size;
+struct multiboot_module *mb_module = 0;
 
 void
 parse_multiboot(void)
 {
-	struct multiboot_module *mb_module;
-
 	/* Get memory info */
 	cnvmem = mb_info.mem_lower;
 	extmem = mb_info.mem_upper;
@@ -379,16 +380,18 @@ parse_multiboot(void)
 	 * support loading one module.
 	 */
 	mb_module = (struct multiboot_module *) mb_info.mods_addr;
-	boot_start = mb_module->mod_start;
-	boot_size = mb_module->mod_end - mb_module->mod_start;
+ 	boot_start = mb_module[0].mod_start;
+ 	boot_size = mb_module[0].mod_end - mb_module[0].mod_start;
+ 
+ 	exec_start = mb_module[1].mod_start;
+ 	exec_size = mb_module[1].mod_end - mb_module[1].mod_start;
+
 
 	kern_args_start = mb_info.cmdline;
 	kern_args_size = strlen((char *) kern_args_start);
 
-	/*
-	boot_args_start = (vm_offset_t) &mb_module->cmdline;
-	boot_args_size = strlen(boot_args_start);
-	*/
+ 	//boot_args_start = mb_module->cmdline;
+ 	//boot_args_size = strlen(boot_args_start);
 }
 
 /*

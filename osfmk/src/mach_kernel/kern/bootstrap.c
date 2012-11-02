@@ -185,6 +185,8 @@
  * Bootstrap the various built-in servers.
  */
 
+#include <string.h>
+
 #include <mach_kdb.h>
 #include <bootstrap_symbols.h>
 #include <dipc.h>
@@ -200,6 +202,7 @@
 #include <mach/mach_port_server.h>
 #include <mach/bootstrap_server.h>
 #include <mach/elf.h>
+#include <i386/multiboot.h>
 
 #include <device/device_port.h>
 #include <device/ds_routines.h>
@@ -230,10 +233,13 @@ extern int		stpages;
 
 #endif	/* MACH_KDB */
 
+#include "boot_script.h"
+
 mach_port_t	bootstrap_host_security_port;	/* local name */
 mach_port_t	bootstrap_wired_ledger_port;	/* local name */
 mach_port_t	bootstrap_paged_ledger_port;	/* local name */
 
+extern struct multiboot_info mb_info;
 vm_offset_t	kern_sym_start = 0;	/* pointer to kernel symbols */
 vm_size_t	kern_sym_size = 0;	/* size of kernel symbols */
 vm_offset_t	kern_args_start = 0;	/* kernel arguments */
@@ -244,6 +250,8 @@ vm_offset_t	boot_args_start = 0;	/* bootstrap arguments */
 vm_size_t	boot_args_size = 0;	/* size of bootstrap arguments */
 vm_offset_t	boot_start = 0;		/* pointer to bootstrap image */
 vm_size_t	boot_size = 0;		/* size of bootstrap image */
+vm_offset_t exec_start = 0;
+vm_size_t   exec_size = 0;
 vm_offset_t	boot_region_desc = 0;	/* bootstrap region descriptions */
 vm_size_t	boot_region_count = 0;	/* number of regions */
 int		boot_thread_state_flavor = 0;
@@ -495,8 +503,373 @@ do_bootstrap_compat(void)
 }
 #endif /* SYS_REBOOT_COMPAT */
 
+
+static void
+exec_load(vm_offset_t start, vm_size_t size)
+{
+	char *startup_flags_begin = 0;
+	Elf32_Ehdr *ehdr = (Elf32_Ehdr *) start;
+	Elf32_Phdr *phdr, *ph;
+	vm_offset_t entry;
+	int result, i;
+	int bss_start, bss_size;
+
+
+	if (size == 0)		/* if we don't have a bootstrap */
+		return;			/* there isn't anything we can do */
+
+	entry = (vm_offset_t) ehdr->e_entry;
+	phdr = (Elf32_Phdr *) (start + ehdr->e_phoff);
+	
+	printf("entry: 0x%x\n", entry);
+	printf("ph offset: 0x%x\n", ehdr->e_phoff);
+	printf("phdr: 0x%x\n", phdr);
+        printf("Looking for program sections\n");
+	printf("Theorical number of sections: %d\n", ehdr->e_phnum);
+
+    boot_region_count = 0;
+
+	for (i = 0, ph = phdr; i < ehdr->e_phnum; i++, ph++) {
+		printf("Loop\n");
+		switch ((int)ph->p_type) {
+		case PT_LOAD:
+			if (ph->p_flags == (PF_R | PF_X)) {
+				printf("Found text region\n");
+				regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_EXECUTE;
+				regions[boot_region_count].addr = trunc_page(ph->p_vaddr);
+				regions[boot_region_count].size = round_page(ph->p_filesz);
+				regions[boot_region_count].offset = trunc_page(ph->p_offset);
+				regions[boot_region_count].mapped = TRUE;
+			}
+			else if (ph->p_flags == (PF_R | PF_W)) {
+				printf("Found data region\n");
+				regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_WRITE;
+				regions[boot_region_count].addr = trunc_page(ph->p_vaddr);
+				regions[boot_region_count].size = round_page(ph->p_memsz);
+				regions[boot_region_count].offset = trunc_page(ph->p_offset);
+				regions[boot_region_count].mapped = TRUE;
+				bzero((char *) (start+ph->p_offset+ph->p_filesz),
+					ph->p_memsz - ph->p_filesz);
+				bss_start = ph->p_vaddr + ph->p_filesz;
+				bss_size = ph->p_memsz - ph->p_filesz;
+			}
+			else {
+				printf("Found PT_LOAD region with unknown flags\n");
+				continue;
+			}
+
+			boot_region_count++;
+			break;
+		default:
+			printf("Found unknown section: 0x%x\n", ph->p_type);
+			break;
+		}
+	}
+
+	printf("I've found: %d sections\n", boot_region_count);
+
+	regions[boot_region_count].addr = STACK_BASE;
+	regions[boot_region_count].size = STACK_SIZE;
+	regions[boot_region_count].offset = 0;
+	regions[boot_region_count].prot = VM_PROT_READ|VM_PROT_WRITE;
+	regions[boot_region_count].mapped = FALSE;
+	boot_region_count++;
+
+	boot_region_desc = (vm_offset_t) regions;
+
+	bzero((char *)&thread_state, sizeof(thread_state));
+
+	thread_state.eip = entry;
+	//thread_state.esp = STACK_PTR;
+	boot_thread_state_count = i386_THREAD_SYSCALL_STATE_COUNT;
+
+	boot_thread_state_flavor = THREAD_SYSCALL_STATE;
+	boot_thread_state = (thread_state_t) &thread_state;
+}    
+
+static void
+exec_map(vm_offset_t start, vm_size_t size)
+{
+	int	i;
+	struct region_desc *r;
+	vm_offset_t addr;
+	vm_object_t object;
+	vm_page_t page;
+	vm_offset_t off;
+
+	/*
+	 * allocate an object and map all of the bootstrap pages into it.
+	 */
+	object = vm_object_allocate(size);
+	for (off = 0; off < size; off += PAGE_SIZE) {
+		while ((page = vm_page_grab_fictitious()) == VM_PAGE_NULL)
+			vm_page_more_fictitious();
+		vm_object_lock(object);
+		addr = pmap_extract(kernel_pmap, start + off);
+
+		if (!addr) {
+			printf("Warning: bootstrap task has bogus page mapping\n");
+			vm_object_unlock(object);
+			vm_page_free(page);
+			continue;
+		}
+
+		vm_page_init(page, addr);
+		page->dirty = TRUE;
+		page->wire_count = 1;
+		vm_page_insert(page, object, off);
+		vm_page_lock_queues();		/* unwire will make page active */
+		vm_page_unwire(page);
+		vm_page_unlock_queues();
+		PAGE_WAKEUP_DONE(page);
+		vm_object_unlock(object);
+	}
+
+	/*
+	 * map the bootstrap regions from the object into the user task.
+	 * allocate non-mapped regions.
+	 */
+	r = (struct region_desc *) boot_region_desc;
+	for (i = 0; i < boot_region_count; i++, r++) {
+		if (r->size == 0)	/* e.g. no BSS */
+			continue;
+		addr = r->addr;
+		if (r->mapped) {
+			vm_object_reference(object);
+			assert(page_aligned(r->size));
+			vm_map_enter(current_task()->map,
+				     &addr,
+				     r->size,
+				     0,
+				     FALSE,
+				     object,
+				     r->offset,
+				     FALSE,
+				     r->prot,
+				     VM_PROT_ALL,
+				     VM_INHERIT_DEFAULT);
+			/* XXX mapped regions always aligned? */
+			assert(addr == r->addr);
+#if	MACH_KDB || MACH_KGDB
+			if (r->prot & VM_PROT_EXECUTE)
+				for (off = 0; off < r->size; off += PAGE_SIZE)
+					vm_fault(current_task()->map,
+						 addr + off,
+						 r->prot,
+						 FALSE);
+#endif
+		} else
+			vm_allocate(current_task()->map,
+				    &addr,
+				    r->size,
+				    FALSE);
+	}
+	vm_object_deallocate(object);
+}
+
+static vm_offset_t
+set_user_regs(vm_offset_t stack_base, vm_size_t stack_size, 
+              vm_size_t arg_size)
+{
+    vm_offset_t arg_addr;
+
+    arg_size = (arg_size + sizeof(int) - 1) & ~(sizeof(int)-1);
+    arg_addr = stack_base + stack_size - arg_size;
+
+	thread_state.esp = (int)arg_addr;
+
+    return (arg_addr);
+}
+
+static void
+build_args_and_stack(char **argv, char **envp)
+{
+	vm_offset_t	stack_base;
+	vm_size_t	stack_size;
+	register
+	char *		arg_ptr;
+	int		arg_count, envc;
+	int		arg_len;
+	char *		arg_pos;
+	int		arg_item_len;
+	char *		string_pos;
+	char *		zero = (char *)0;
+	int i;
+
+	/*
+	 * Calculate the size of the argument list.
+	 */
+	arg_len = 0;
+	arg_count = 0;
+	while (argv[arg_count] != 0) {
+	    arg_ptr = argv[arg_count++];
+	    arg_len += strlen(arg_ptr) + 1;
+	}
+	envc = 0;
+	if (envp != 0)
+	  while (envp[envc] != 0)
+	    arg_len += strlen (envp[envc++]) + 1;
+
+	/*
+	 * Add space for:
+	 *	arg count
+	 *	pointers to arguments
+	 *	trailing 0 pointer
+	 *	pointers to environment variables
+	 *	trailing 0 pointer
+	 *	and align to integer boundary
+	 */
+	arg_len += (sizeof(integer_t)
+		    + (arg_count + 1 + envc + 1) * sizeof(char *));
+	arg_len = (arg_len + sizeof(integer_t) - 1) & ~(sizeof(integer_t)-1);
+
+	/*
+	 * Allocate the stack.
+	 */
+	stack_size = round_page(STACK_SIZE);
+	stack_base = VM_MAX_ADDRESS - stack_size;
+	(void) vm_allocate(current_task()->map,
+			&stack_base,
+			stack_size,
+			FALSE);
+
+    arg_len = (arg_len + sizeof(int) - 1) & ~(sizeof(int)-1);
+    
+	arg_pos = (char *)
+		set_user_regs(stack_base, stack_size, arg_len);
+
+	/*
+	 * Start the strings after the arg-count and pointers
+	 */
+	string_pos = (arg_pos
+		      + sizeof(integer_t)
+		      + (arg_count + 1 + envc + 1) * sizeof(char *));
+
+	/*
+	 * first the argument count
+	 */
+	(void) copyout((char *)&arg_count,
+			arg_pos,
+			sizeof(integer_t));
+	arg_pos += sizeof(integer_t);
+
+	/*
+	 * Then the strings and string pointers for each argument
+	 */
+	for (i = 0; i < arg_count; ++i) {
+	    arg_ptr = argv[i];
+	    arg_item_len = strlen(arg_ptr) + 1; /* include trailing 0 */
+
+	    /* set string pointer */
+	    (void) copyout((char *)&string_pos,
+			arg_pos,
+			sizeof (char *));
+	    arg_pos += sizeof(char *);
+
+	    /* copy string */
+	    (void) copyout(arg_ptr, string_pos, arg_item_len);
+	    string_pos += arg_item_len;
+	}
+
+	/*
+	 * Null terminator for argv.
+	 */
+	(void) copyout((char *)&zero, arg_pos, sizeof(char *));
+	arg_pos += sizeof(char *);
+
+	/*
+	 * Then the strings and string pointers for each environment variable
+	 */
+	for (i = 0; i < envc; ++i) {
+	    arg_ptr = envp[i];
+	    arg_item_len = strlen(arg_ptr) + 1; /* include trailing 0 */
+
+	    /* set string pointer */
+	    (void) copyout((char *)&string_pos,
+			arg_pos,
+			sizeof (char *));
+	    arg_pos += sizeof(char *);
+
+	    /* copy string */
+	    (void) copyout(arg_ptr, string_pos, arg_item_len);
+	    string_pos += arg_item_len;
+	}
+
+	/*
+	 * Null terminator for envp.
+	 */
+	(void) copyout((char *)&zero, arg_pos, sizeof(char *));
+}
+
+struct user_bootstrap_info
+{
+    vm_offset_t start;
+    vm_offset_t size;
+  char **argv;
+  int done;
+  decl_simple_lock_data(,lock)
+};
+
 static void
 user_bootstrap(void)
+{
+    struct user_bootstrap_info *info = (struct user_bootstrap_info *) current_thread()->saved.other;
+    int err = 0;
+    
+    exec_load(info->start, info->size);
+    //    if (err)
+    //    panic ("Cannot load user executable module (error code %d): %s",
+    //           err, info->argv[0]);
+
+    exec_map(info->start, info->size);
+    //if (err)
+    //    panic ("Cannot load user executable module (error code %d): %s",
+    //           err, info->argv[0]);
+    
+    printf ("task loaded:");
+  
+    {
+        //char *argv[] = { "serverboot",
+        //                 0 };
+        char *envp[] = { 0, 0 };
+        
+        /* Set up the stack with arguments.  */
+        build_args_and_stack(info->argv, envp);
+    
+        //for (av = info->argv; *av != 0; ++av)
+        //    printf (" %s", *av);
+    }    
+
+    printf("check1\n");
+	/*
+	 * set the bootstrap task thread state.
+	 */
+	thread_setstatus(current_act(),
+			 boot_thread_state_flavor,
+			 boot_thread_state,
+			 boot_thread_state_count);
+
+    printf("check2\n");
+
+    task_suspend (current_task());
+
+    printf("check3\n");
+
+    simple_lock(&info->lock);
+    assert (!info->done);
+    info->done = 1;
+    thread_wakeup ((event_t) info);
+
+	/*
+	 * start running user thread.
+	 */
+	thread_bootstrap_return();
+	/*NOTREACHED*/
+}
+
+#if 0
+static void
+user_bootstrap_old(void)
 {
 	int	i;
 	struct region_desc *r;
@@ -636,6 +1009,7 @@ user_bootstrap(void)
 	thread_bootstrap_return();
 	/*NOTREACHED*/
 }
+#endif
 
 kern_return_t
 do_bootstrap_ports(
@@ -766,8 +1140,121 @@ do_bootstrap_completed(
 
 void	load_info_print(void);
 
+extern struct multiboot_module *mb_module;
+
 void
 bootstrap_create(void)
+{
+    int i, losers, maxlen, err;
+    vm_offset_t foobar;
+    char *kernel_cmdline = (char *) mb_info.cmdline;
+    struct multiboot_module *bmods = ((struct multiboot_module *)
+				    boot_start);
+
+    foobar = bmods->mod_start;
+    printf("mb_info: 0x%8x\n", &mb_info);
+    printf("mb_info.count: 0x%8x\n", &mb_info.mods_count);
+    printf("mb_info.mods_addr: 0x%8x\n", &mb_info.mods_addr);
+    printf("mb_module: 0x%8x\n", mb_module);
+    printf("mb_module->mod_start: 0x%8x\n", mb_module->mod_start);
+    printf("string: 0x%8x\n", bmods[0].string);
+    printf("mod_start: 0x%8x\n", bmods[0].mod_start);
+    printf("boot_start: 0x%8x\n", boot_start);
+    printf("boot_args_start: 0x%8x\n", boot_args_start);
+    printf("foobar: 0x%8x\n", foobar);
+    printf("mods_count: %d\n", mb_info.mods_count);
+
+    if (/*(mb_info.flags & MULTIBOOT_MODS)
+          ||*/ (mb_info.mods_count == 0))
+        panic ("No bootstrap code loaded with the kernel!");  
+
+    /* Initialize boot script variables.  We leak these send rights.  */
+    losers = boot_script_set_variable
+        ("host-port", VAL_PORT,
+         (int)ipc_port_make_send(realhost.host_priv_self));
+    if (losers)
+        panic ("cannot set boot-script variable host-port: %s",
+               boot_script_error_string (losers));
+    losers = boot_script_set_variable
+        ("device-port", VAL_PORT,
+         (int) ipc_port_make_send(master_device_port));
+    if (losers)
+        panic ("cannot set boot-script variable device-port: %s",
+               boot_script_error_string (losers));
+    
+    losers = boot_script_set_variable ("kernel-command-line", VAL_STR,
+                                       (int) kernel_cmdline);
+    if (losers)
+        panic ("cannot set boot-script variable %s: %s",
+               "kernel-command-line", boot_script_error_string (losers));
+    
+    {
+        /* Turn each `FOO=BAR' word in the command line into a boot script
+           variable ${FOO} with value BAR.  This matches what we get from
+           oskit's environ in the oskit-mach case (above).  */
+        /*
+        int len = strlen (kernel_cmdline) + 1;
+        char *s = memcpy (alloca (len), kernel_cmdline, len);
+        char *word;
+        while ((word = strsep (&s, " \t")) != 0)
+        {
+            char *eq = strchr (word, '=');
+            if (eq == 0)
+                continue;
+            *eq++ = '\0';
+            losers = boot_script_set_variable (word, VAL_STR, (int) eq);
+            if (losers)
+                panic ("cannot set boot-script variable %s: %s",
+                       word, boot_script_error_string (losers));
+        }
+        */
+    }
+
+
+    maxlen = 0;
+    /*
+    for (i = 0; i < mb_info.mods_count; ++i)
+	{
+        int err;
+        char *line = (char*)phystokv(bmods[i].string);
+        int len = strlen (line) + 1;
+        if (len > maxlen)
+            maxlen = len;
+        printf ("Hola\n");
+        printf ("module %d: %s\n", i, line);
+        err = boot_script_parse_line (&bmods[i], line);
+        if (err)
+	    {
+            printf ("\n\tERROR: %s", boot_script_error_string (err));
+            ++losers;
+	    }
+    }
+    printf ("\r%d multiboot modules %*s", i, -maxlen, "");
+    if (losers)
+        panic ("%d of %d boot script commands could not be parsed",
+               losers, mb_info.mods_count);
+    */
+
+    err = boot_script_parse_line (boot_start, boot_size, "ext2fs.static --multiboot-command-line=root=/dev/hd2s2 --host-priv-port=${host-port} --device-master-port=${device-port} --exec-server-task=${exec-task} -T typed device:hd2s2 $(task-create) $(task-resume)");
+    err = boot_script_parse_line (exec_start, exec_size, "exec.static $(exec-task=task-create)");
+    if (err)
+    {
+        printf ("\n\tERROR: %s", boot_script_error_string (err));
+        ++losers;
+    }
+    
+    losers = boot_script_exec ();
+    if (losers)
+        panic ("ERROR in executing boot script: %s",
+               boot_script_error_string (losers));
+
+    /* XXX at this point, we could free all the memory used
+       by the boot modules and the boot loader's descriptors and such.  */
+}
+
+#if 0
+void
+bootstrap_create_old(void)
 {
 	ipc_port_t	master_bootstrap_port;
 	task_t		bootstrap_task;
@@ -813,6 +1300,7 @@ bootstrap_create(void)
 	kr = thread_resume(bootstrap_thr_act);
 	assert( kr == KERN_SUCCESS );
 }
+#endif
 
 #if	DEBUG
 void
@@ -911,5 +1399,129 @@ move_bootstrap(void)
 	return boot_start + boot_size + load_info_size;
 }
 
+void *
+boot_script_malloc (unsigned int size)
+{
+  return (void *) kalloc (size);
+}
+
+void
+boot_script_free (void *ptr, unsigned int size)
+{
+  kfree ((vm_offset_t)ptr, size);
+}
+
+int
+boot_script_task_create (struct cmd *cmd)
+{
+    kern_return_t rc = task_create_local(TASK_NULL, FALSE, FALSE, &cmd->task);
+    printf("boot_script_task_create\n");
+  if (rc)
+    {
+      printf("boot_script_task_create failed with %x\n", rc);
+      return BOOT_SCRIPT_MACH_ERROR;
+    }
+  return 0;
+}
+
+int
+boot_script_task_resume (struct cmd *cmd)
+{
+    kern_return_t rc;
+    printf("task_resume entry\n");
+    rc = task_resume (cmd->task);
+    printf("after task resume\n");
+  if (rc)
+    {
+      printf("boot_script_task_resume failed with %x\n", rc);
+      return BOOT_SCRIPT_MACH_ERROR;
+    }
+  printf ("\nstart %s: ", cmd->path);
+  return 0;
+}
+
+int
+boot_script_prompt_task_resume (struct cmd *cmd)
+{
+  char xx[5];
+
+  printf ("Hit return to resume %s...", cmd->path);
+  safe_gets (xx, sizeof xx);
+
+  return boot_script_task_resume (cmd);
+}
+
+void
+boot_script_free_task (task_t task, int aborting)
+{
+  if (aborting)
+    task_terminate (task);
+}
+
+int
+boot_script_insert_right (struct cmd *cmd, mach_port_t port, mach_port_t *name)
+{
+  *name = task_insert_send_right (cmd->task, (ipc_port_t)port);
+  return 0;
+}
+
+int
+boot_script_insert_task_port (struct cmd *cmd, task_t task, mach_port_t *name)
+{
+  *name = task_insert_send_right (cmd->task, task->itk_sself);
+  return 0;
+}
+
+struct user_bootstrap_info info;
+
+int
+boot_script_exec_cmd (vm_offset_t start, vm_size_t size, task_t task, char *path, int argc,
+		      char **argv, char *strings, int stringlen)
+{
+  thread_act_t thread_act;
+  ipc_port_t master_bootstrap_port;
+  int err;
+  int i;
+
+  info.start = start;
+  info.size = size;
+  info.argv = argv;
+  info.done = 0;
+
+  for (i=0; i < argc; ++i) {
+      printf("argv[%d]: %s\n", i, argv[i]);
+  }
+
+  if (task != MACH_PORT_NULL)
+    {
+        simple_lock_init (&info.lock, ETAP_NO_TRACE);
+        simple_lock(&info.lock);
+
+      master_bootstrap_port = ipc_port_alloc_kernel();
+      if (master_bootstrap_port == IP_NULL)
+          panic("can't allocate master bootstrap port");
+
+      err = thread_create ((task_t)task, &thread_act);
+      assert(err == 0);
+
+      task_set_special_port(task,
+                            TASK_BOOTSTRAP_PORT,
+                            ipc_port_make_send(master_bootstrap_port));
+      
+      thread_act->thread->saved.other = (char *) &info;
+      thread_start(thread_act->thread, user_bootstrap);
+      err = thread_resume(thread_act);
+      assert(err == 0);
+
+      /* We need to synchronize with the new thread and block this
+	 main thread until it has finished referring to our local state.  */
+      while (! info.done)
+	{
+	  thread_sleep_simple_lock((event_t) &info, simple_lock_addr(info.lock), FALSE);
+	}
+      printf("\n");
+    }
 
 
+  return 0;
+}

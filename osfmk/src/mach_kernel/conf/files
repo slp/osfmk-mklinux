@@ -401,6 +401,7 @@ kern/thread_act.c		standard
 kern/thread_pool.c		standard
 kern/ast.c			standard
 kern/bootstrap.c		standard
+kern/boot_script.c		standard
 ./mach/bootstrap_server.c	standard
 kern/clock.c			standard
 kern/counters.c			standard
