@@ -450,7 +450,7 @@ void
 usimple_lock_held(
 	usimple_lock_t	l)
 {
-	usld_lock_held(l);
+//	usld_lock_held(l);
 }
 
 
@@ -463,7 +463,7 @@ usimple_lock_held(
 void
 usimple_lock_none_held(void)
 {
-	usld_lock_none_held();
+//	usld_lock_none_held();
 }
 #endif	/* USLOCK_DEBUG */
 
