@@ -160,6 +160,7 @@
 /*
  * CR4
  */
+#define	CR4_PGE	0x00000080	/*       Page Global Extensions */
 #define	CR4_MCE	0x00000040	/* p5:   Machine Check Exceptions */
 #define	CR4_PSE	0x00000010	/* p5:   Page Size Extensions */
 #define	CR4_DE	0x00000008	/* p5:   Debugging Extensions */

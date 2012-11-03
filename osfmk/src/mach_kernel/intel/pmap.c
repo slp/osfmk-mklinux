@@ -1140,7 +1140,8 @@ pmap_bootstrap(
 
 	template = pa_to_pte(avail_start)
 		| INTEL_PTE_VALID
-		| INTEL_PTE_WRITE;
+		| INTEL_PTE_WRITE
+		| INTEL_PTE_GLOBAL;
 
 	for (va = virtual_avail; va < virtual_end; va += INTEL_PGBYTES) {
 	    if (pte >= ptend) {
@@ -1149,7 +1150,8 @@ pmap_bootstrap(
 		virtual_avail = (vm_offset_t)ptend;
 		*pde = PA_TO_PTE((vm_offset_t) pte)
 			| INTEL_PTE_VALID
-			| INTEL_PTE_WRITE;
+			| INTEL_PTE_WRITE
+			| INTEL_PTE_GLOBAL;
 		pde++;
 	    }
 	    WRITE_PTE_FAST(pte, template)
@@ -1196,7 +1198,8 @@ pmap_bootstrap(
 		avail_start += INTEL_PGBYTES;
 		*pde = PA_TO_PTE((vm_offset_t) pte)
 			| INTEL_PTE_VALID
-			| INTEL_PTE_WRITE;
+			| INTEL_PTE_WRITE
+			| INTEL_PTE_GLOBAL;
 		pde++;
 	    }
 	    WRITE_PTE_FAST(pte, template)

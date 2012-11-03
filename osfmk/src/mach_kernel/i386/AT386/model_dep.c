@@ -772,6 +772,7 @@ i386_init(void)
 
 #endif	/* NCPUS > 1 && AT386 */
 
+	set_cr4(get_cr4() | CR4_PGE);
 	pmap_bootstrap(loadpt);
 
 	/* Steal the contiguous memory that's been requested by various

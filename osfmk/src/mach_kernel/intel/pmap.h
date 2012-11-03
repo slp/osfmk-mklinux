@@ -367,6 +367,7 @@ typedef unsigned int	pt_entry_t;
 #define INTEL_PTE_NCACHE 	0x00000010
 #define INTEL_PTE_REF		0x00000020
 #define INTEL_PTE_MOD		0x00000040
+#define INTEL_PTE_GLOBAL	0x00000100
 #if	i860
 #if	i860XP
 #define INTEL_PTE_4M		0x00000080
