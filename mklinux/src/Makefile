@@ -5,8 +5,8 @@ SUBLEVEL = 33
 ifndef	ARCH
 #ARCH = i386
 #ARCH = ppc
-#ARCH = osfmach3_i386
-ARCH = osfmach3_ppc
+ARCH = osfmach3_i386
+#ARCH = osfmach3_ppc
 endif
 
 #
